@@ -21,13 +21,14 @@ public partial class SettingsWindow : Window
         _programs = new ObservableCollection<string>(settings.AutoStartPrograms);
         DataContext = this;
 
+        var languages = I18nService.Instance.AvailableLanguages;
+        LanguageList.ItemsSource = languages;
         var language = string.IsNullOrWhiteSpace(settings.Language)
             ? I18nService.Instance.CurrentLanguage
             : settings.Language;
-        ChineseLanguageRadio.IsChecked =
-            !language.StartsWith("en", StringComparison.OrdinalIgnoreCase);
-        EnglishLanguageRadio.IsChecked =
-            language.StartsWith("en", StringComparison.OrdinalIgnoreCase);
+        LanguageList.SelectedItem = languages.FirstOrDefault(option =>
+            string.Equals(option.Code, language, StringComparison.OrdinalIgnoreCase))
+            ?? languages.First();
     }
 
     public AppSettings Settings { get; }
@@ -101,9 +102,8 @@ public partial class SettingsWindow : Window
     private void OnConfirmClick(object sender, RoutedEventArgs e)
     {
         Settings.AutoStartPrograms = [.. _programs];
-        Settings.Language = EnglishLanguageRadio.IsChecked == true
-            ? I18nService.EnglishLanguage
-            : I18nService.DefaultLanguage;
+        Settings.Language = (LanguageList.SelectedItem as LanguageOption)?.Code
+                            ?? I18nService.DefaultLanguage;
         DialogResult = true;
     }
 }

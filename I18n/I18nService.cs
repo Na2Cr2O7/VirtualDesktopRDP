@@ -27,11 +27,10 @@ public sealed class I18nService : INotifyPropertyChanged
 
     public static I18nService Instance => LazyInstance.Value;
 
-    public static IReadOnlyList<LanguageOption> AvailableLanguages { get; } =
-    [
-        new(DefaultLanguage, "简体中文"),
-        new(EnglishLanguage, "English")
-    ];
+    /// <summary>
+    /// 扫描 I18n 目录下所有语言 JSON 后生成的语言列表。默认语言始终位于第一项。
+    /// </summary>
+    public IReadOnlyList<LanguageOption> AvailableLanguages => DiscoverLanguages();
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -91,32 +90,93 @@ public sealed class I18nService : INotifyPropertyChanged
             : key;
     }
 
-    private static string NormalizeLanguage(string? language)
+    private string NormalizeLanguage(string? language)
     {
+        var available = AvailableLanguages;
         if (string.IsNullOrWhiteSpace(language))
         {
-            return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName
-                .Equals("en", StringComparison.OrdinalIgnoreCase)
-                ? EnglishLanguage
-                : DefaultLanguage;
+            language = CultureInfo.CurrentUICulture.Name;
         }
 
-        if (language.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+        var exact = available.FirstOrDefault(option => string.Equals(
+            option.Code,
+            language,
+            StringComparison.OrdinalIgnoreCase));
+        if (exact is not null)
         {
-            return EnglishLanguage;
+            return exact.Code;
         }
 
-        if (language.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+        var prefix = available.FirstOrDefault(option =>
+            option.Code.StartsWith(language + "-", StringComparison.OrdinalIgnoreCase)
+            || language.StartsWith(option.Code + "-", StringComparison.OrdinalIgnoreCase));
+        return prefix?.Code ?? DefaultLanguage;
+    }
+
+    private IReadOnlyList<LanguageOption> DiscoverLanguages()
+    {
+        var languages = new List<LanguageOption>
         {
-            return DefaultLanguage;
+            new(DefaultLanguage, GetDisplayName(DefaultLanguage))
+        };
+
+        try
+        {
+            if (Directory.Exists(_i18nDirectory))
+            {
+                foreach (var filePath in Directory.EnumerateFiles(_i18nDirectory, "*.json")
+                             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
+                {
+                    var code = Path.GetFileNameWithoutExtension(filePath);
+                    if (string.IsNullOrWhiteSpace(code)
+                        || string.Equals(code, DefaultLanguage, StringComparison.OrdinalIgnoreCase)
+                        || languages.Any(option => string.Equals(
+                            option.Code,
+                            code,
+                            StringComparison.OrdinalIgnoreCase)))
+                    {
+                        continue;
+                    }
+
+                    languages.Add(new LanguageOption(code, GetDisplayName(code)));
+                }
+            }
+        }
+        catch (Exception exception) when (exception is IOException
+                                              or UnauthorizedAccessException)
+        {
+            // 目录不可读时至少保留默认语言。
         }
 
-        var known = AvailableLanguages.FirstOrDefault(
-            option => string.Equals(
-                option.Code,
-                language,
-                StringComparison.OrdinalIgnoreCase));
-        return known?.Code ?? DefaultLanguage;
+        return languages
+            .OrderBy(option => option.Code == DefaultLanguage ? 0 : 1)
+            .ThenBy(option => option.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
+
+    private static string GetDisplayName(string language)
+    {
+        if (string.Equals(language, DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+        {
+            return "简体中文";
+        }
+
+        if (string.Equals(language, EnglishLanguage, StringComparison.OrdinalIgnoreCase))
+        {
+            return "English";
+        }
+
+        try
+        {
+            var culture = CultureInfo.GetCultureInfo(language);
+            return string.IsNullOrWhiteSpace(culture.NativeName)
+                ? language
+                : culture.NativeName;
+        }
+        catch (CultureNotFoundException)
+        {
+            return language;
+        }
     }
 
     private IReadOnlyDictionary<string, string> LoadTranslations(string language)

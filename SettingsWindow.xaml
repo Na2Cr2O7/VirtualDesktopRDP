@@ -4,14 +4,47 @@
         xmlns:i18n="clr-namespace:VirtualDesktopRDP.I18n"
         Title="{i18n:T 自动启动设置}"
         Width="760"
-        Height="540"
+        Height="600"
         MinWidth="560"
-        MinHeight="420"
+        MinHeight="460"
         Background="#FF1B1B1F"
         FontFamily="Microsoft YaHei UI"
         Foreground="#FFE8E8E8"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
+    <Window.Resources>
+        <Style x:Key="LanguageListItem" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Foreground" Value="#FFE8E8E8" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Padding="{TemplateBinding Padding}"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="3"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#22FFFFFF" />
+                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="#44FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#223FA0FF" />
+                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="#FF7FBFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="22">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -33,25 +66,29 @@
                    Text="{i18n:T 仅在新建子会话并完成登录后启动；重新连接已有会话不会重复启动。列表中的程序会按顺序以管理员权限启动。}"
                    TextWrapping="Wrap" />
 
-        <StackPanel Grid.Row="2"
-                    Margin="0,0,0,14"
-                    VerticalAlignment="Center"
-                    Orientation="Horizontal">
-            <TextBlock Margin="0,0,16,0"
-                       VerticalAlignment="Center"
+        <Grid Grid.Row="2"
+              Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0"
+                       Margin="0,0,16,0"
+                       VerticalAlignment="Top"
                        Text="{i18n:T 界面语言}" />
-            <RadioButton x:Name="ChineseLanguageRadio"
-                         Margin="0,0,18,0"
-                         VerticalAlignment="Center"
-                         GroupName="Language">
-                <TextBlock Foreground="#FFE8E8E8" Text="简体中文" />
-            </RadioButton>
-            <RadioButton x:Name="EnglishLanguageRadio"
-                         VerticalAlignment="Center"
-                         GroupName="Language">
-                <TextBlock Foreground="#FFE8E8E8" Text="English" />
-            </RadioButton>
-        </StackPanel>
+            <ListBox x:Name="LanguageList"
+                     Grid.Column="1"
+                     Width="280"
+                     MaxHeight="120"
+                     Padding="2"
+                     HorizontalAlignment="Left"
+                     Background="#FF202024"
+                     BorderBrush="#FF707078"
+                     BorderThickness="3"
+                     DisplayMemberPath="DisplayName"
+                     ItemContainerStyle="{StaticResource LanguageListItem}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+        </Grid>
 
         <Border Grid.Row="3"
                 Background="#FF202024"

@@ -1,26 +1,38 @@
 # VirtualDesktopRDP
 
-从 BetterGI 的“桌面分身”功能中提取的独立 WPF 示例程序。它不做远程桌面协议实现，而是组合 Windows 自带能力：
+<!-- 从 BetterGI 的“桌面分身”功能中提取的程序。它不做远程桌面协议实现，而是组合 Windows 自带能力： -->
+
+提取自[BetterGI](https://github.com/babalae/better-genshin-impact) 的“桌面分身”功能。利用Windows 远程桌面连接(RDP)实现。
+
+
+## 环境要求
+
+- Windows 10 / 11 非家庭版（家庭版可能可用，但不受微软支持）
+> 部分 家庭版Windows / 精简版Windows 可能会出现RDP组件缺失，可以尝试https://github.com/stascorp/rdpwrap/
+
+- 以管理员权限运行
+- 系统 RDP 未被关闭、未被 RDP Wrapper 接管
+- 不要在桌面分身运行期间直接关机/重启；先关闭本程序并注销会话
+
+
+
+<details>
+
+<summary>它不做远程桌面协议实现，而是组合 Windows 自带能力：</summary>
 
 - `WTSEnableChildSessions` / `WTSGetChildSessionId` / `WTSLogoffSession`
 - 本机 RDP ActiveX `MsRdpClient10` 的 `ConnectToChildSession`
 - 任务计划程序 `RunEx(..., TASK_RUN_USE_SESSION_ID, ...)` 投递进程
 - RDP 输入窗口 `Input Capture Window` 的 `EnableWindow` 控制（观看模式）
 
-## 环境要求
 
-- Windows 10 / 11 非家庭版（家庭版可能可用，但不受微软支持）
-- 以管理员权限运行（项目清单已设置 `requireAdministrator`）
-- 系统 RDP 未被关闭、未被 RDP Wrapper 接管
-- 不要在桌面分身运行期间直接关机/重启；先关闭本程序并注销会话
+</details>
 
 ## 功能
 
-保留：
-
-- 启动 / 连接本机 Child Session
+- 启动 / 连接本机
 - 隐藏到托盘（RDP 连接保持）
-- 关闭并注销 Child Session
+- 关闭并注销
 - 观看模式（屏蔽本机键鼠进入子会话）
 - 自适应 / 1:1、保持 16:9
 - 小窗模式
@@ -30,18 +42,10 @@
 - 以管理员权限在子会话中启动任意 `.exe`
 - 新建会话后按列表自动启动程序
 
-已去掉：
-
-- 游戏鼠标 / 相对鼠标转发
-- 运行 BetterGI
-- 切换窗口 / Win+Tab
-- BetterGI 双实例 IPC、任务调度等业务
 
 ## 防火墙
 
-BetterGI 的应用代码没有防火墙处理；它之所以通常不需要手动设置，是因为安装包配置了 `IsAllowFirewall: true`，由 MicaSetup 安装器写入应用级防火墙规则。
-
-本项目没有安装器，因此启动时会自动检查并写入一条针对当前 `VirtualDesktopRDP.exe` 的入站放行规则（所有网络配置文件）。如果失败，可以在“控制中心 → 更多 → 修复防火墙规则”中重试。
+本项目启动时会自动检查并写入一条针对当前 `VirtualDesktopRDP.exe` 的入站放行规则（所有网络配置文件）。如果失败，可以在“控制中心 → 更多 → 修复防火墙规则”中重试。
 
 ## 自动启动列表
 
@@ -53,13 +57,15 @@ BetterGI 的应用代码没有防火墙处理；它之所以通常不需要手�
 %LOCALAPPDATA%\VirtualDesktopRDP\settings.json
 ```
 
+
 ## 多语言
 
 界面支持简体中文和 English，可在“自动启动设置”窗口中切换，选择会保存到 `settings.json` 的 `Language` 字段。
 
 - 简体中文原文同时作为翻译键，默认直接显示；
 - 其他语言放在 `I18n/<language>.json`，格式为“中文原文 -> 译文”；
-- 新增语言时添加对应 JSON 文件，并在设置窗口中增加语言选项即可。
+- 启动时会扫描 `I18n` 目录下所有 `*.json` 并生成语言列表，新增语言只需添加对应 JSON 文件，无需修改代码；
+- 语言显示名使用该语言自身的 `CultureInfo.NativeName`。
 
 ## 构建
 
@@ -104,4 +110,6 @@ RDP 的登录凭据由 Windows 的 RDP ActiveX 登录流程处理，本程序不
 
 本项目从 [BetterGI（better-genshin-impact）](https://github.com/babalae/better-genshin-impact) 的“桌面分身”实现中提取并改写，主要沿用其 Child Session 原生调用、RDP ActiveX 封装、环境检查、进程投递和会话生命周期逻辑。
 
-因此本项目按 **GNU General Public License v3.0（GPLv3）** 发布，完整许可证见 [LICENSE.txt](LICENSE.txt)。分发或修改时请继续遵守 GPLv3。
+本项目在 **GNU General Public License v3.0（GPLv3）** 下开源
+
+[协议](LICENSE.txt)
