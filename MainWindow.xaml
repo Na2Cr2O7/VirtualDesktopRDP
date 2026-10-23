@@ -1,0 +1,304 @@
+<Window x:Class="VirtualDesktopRDP.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
+        xmlns:infra="clr-namespace:VirtualDesktopRDP.Infrastructure"
+        Title="VirtualDesktopRDP"
+        Width="1280"
+        Height="752"
+        MinWidth="480"
+        MinHeight="360"
+        Background="#FF1B1B1F"
+        FontFamily="Microsoft YaHei UI"
+        Foreground="#FFE8E8E8"
+        Topmost="{Binding IsTopmost, Mode=OneWay}"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <infra:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+
+        <Style x:Key="ToolbarButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#FFE8E8E8" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#22FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#33FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ToolbarToggleButton" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#FFE8E8E8" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Border"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#22FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#3340A0FF" />
+                                <Setter Property="Foreground" Value="#FF8CC8FF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- 顶部工具栏 -->
+        <Border DockPanel.Dock="Top"
+                Padding="10,6"
+                Background="#FF252529"
+                BorderBrush="#22FFFFFF"
+                BorderThickness="0,0,0,1">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Left"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal">
+                    <Ellipse Width="10"
+                             Height="10"
+                             Margin="6,0,10,0"
+                             Fill="{Binding StatusBrush}"
+                             ToolTip="{Binding StatusTooltip}" />
+                </StackPanel>
+
+                <WrapPanel HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           Orientation="Horizontal">
+                    <Button Command="{Binding StartCommand}"
+                            Content="启动"
+                            IsEnabled="{Binding CanStart}"
+                            Style="{StaticResource ToolbarButton}" />
+                    <Button Command="{Binding HideCommand}"
+                            Content="隐藏"
+                            Style="{StaticResource ToolbarButton}" />
+                    <ToggleButton Command="{Binding ToggleWatchModeCommand}"
+                                  Content="观看"
+                                  IsChecked="{Binding IsWatchModeEnabled, Mode=OneWay}"
+                                  Style="{StaticResource ToolbarToggleButton}"
+                                  ToolTip="{Binding WatchModeMenuHeader}" />
+
+                    <Menu Background="Transparent"
+                          Foreground="#FFE8E8E8"
+                          VerticalAlignment="Center">
+                        <MenuItem Header="控制中心"
+                                  Foreground="#FFE8E8E8">
+                            <MenuItem Header="窗口">
+                                <MenuItem Header="自适应"
+                                          Command="{Binding UseAdaptiveCommand}"
+                                          IsCheckable="True"
+                                          IsChecked="{Binding IsAdaptive, Mode=OneWay}" />
+                                <MenuItem Header="1 : 1"
+                                          Command="{Binding UseOneToOneCommand}"
+                                          IsCheckable="True"
+                                          IsChecked="{Binding IsOneToOne, Mode=OneWay}" />
+                                <Separator />
+                                <MenuItem Header="保持 16:9"
+                                          Command="{Binding ToggleKeepAspectRatioCommand}"
+                                          IsCheckable="True"
+                                          IsChecked="{Binding KeepAspectRatio, Mode=OneWay}" />
+                                <MenuItem Header="{Binding SmallWindowMenuHeader}"
+                                          Command="{Binding ToggleSmallWindowCommand}" />
+                                <Separator />
+                                <MenuItem Header="{Binding TopmostMenuHeader}"
+                                          Command="{Binding ToggleTopmostCommand}" />
+                            </MenuItem>
+                            <MenuItem Header="快捷键">
+                                <MenuItem Header="系统组合键发送到虚拟桌面"
+                                          Command="{Binding ToggleSendSystemShortcutsCommand}"
+                                          IsCheckable="True"
+                                          IsChecked="{Binding SendSystemShortcutsToRemote, Mode=OneWay}" />
+                                <Separator />
+                                <MenuItem Header="发送 Win+D 显示桌面"
+                                          Command="{Binding SendShowDesktopCommand}" />
+                            </MenuItem>
+                            <MenuItem Header="音频">
+                                <MenuItem Header="{Binding AudioMenuHeader}"
+                                          Command="{Binding ToggleAudioMutedCommand}" />
+                            </MenuItem>
+                            <MenuItem Header="更多">
+                                <MenuItem Header="以管理员权限启动…"
+                                          Command="{Binding LaunchExecutableCommand}" />
+                            </MenuItem>
+                        </MenuItem>
+                    </Menu>
+
+                    <Button Command="{Binding SettingsCommand}"
+                            Content="设置"
+                            Style="{StaticResource ToolbarButton}" />
+                    <Button Command="{Binding CloseCommand}"
+                            Content="关闭"
+                            Style="{StaticResource ToolbarButton}" />
+                </WrapPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- 底部状态栏 -->
+        <Border DockPanel.Dock="Bottom"
+                Padding="12,5"
+                Background="#FF202024"
+                BorderBrush="#22FFFFFF"
+                BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Margin="0,0,8,0"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="#CCFFFFFF"
+                           Text="{Binding StatusTitle}" />
+                <TextBlock Grid.Column="1"
+                           FontSize="11"
+                           Foreground="#88FFFFFF"
+                           Text="{Binding StatusTooltip}"
+                           TextTrimming="CharacterEllipsis" />
+            </Grid>
+        </Border>
+
+        <!-- RDP 画面与未连接提示层 -->
+        <Grid Background="Black">
+            <wfi:WindowsFormsHost x:Name="RdpHostContainer"
+                                  Margin="3,0,3,3"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Stretch"
+                                  Visibility="{Binding IsPromptVisible, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+
+            <Grid Margin="24"
+                  Background="#FF17171A"
+                  Visibility="{Binding IsPromptVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Border MaxWidth="620"
+                        Padding="36,32"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Background="#FF202024"
+                        BorderBrush="#33FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="12">
+                    <StackPanel>
+                        <Border Width="72"
+                                Height="72"
+                                HorizontalAlignment="Center"
+                                Background="#262FA4E7"
+                                CornerRadius="36">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="30"
+                                       Text="🖥" />
+                        </Border>
+
+                        <StackPanel Margin="0,20,0,0"
+                                    HorizontalAlignment="Center"
+                                    Orientation="Horizontal">
+                            <Ellipse Width="10"
+                                     Height="10"
+                                     Margin="0,0,9,0"
+                                     VerticalAlignment="Center"
+                                     Fill="{Binding StatusBrush}" />
+                            <TextBlock FontSize="21"
+                                       FontWeight="SemiBold"
+                                       Foreground="White"
+                                       Text="{Binding StatusTitle}" />
+                        </StackPanel>
+
+                        <TextBlock MaxWidth="510"
+                                   Margin="0,10,0,0"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#BFFFFFFF"
+                                   Text="{Binding StatusDescription}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap" />
+
+                        <Border Margin="0,22,0,0"
+                                Padding="16,12"
+                                Background="#10000000"
+                                BorderBrush="#24FFFFFF"
+                                BorderThickness="1"
+                                CornerRadius="7">
+                            <StackPanel>
+                                <TextBlock Foreground="#E6FFFFFF" Text="{Binding RdpStatusText}" />
+                                <TextBlock Margin="0,5,0,0"
+                                           Foreground="#99FFFFFF"
+                                           Text="{Binding ChildSessionStatusText}" />
+                                <TextBlock Margin="0,8,0,0"
+                                           FontSize="11"
+                                           Foreground="#70FFFFFF"
+                                           Text="{Binding StatusTooltip}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel Margin="0,24,0,0"
+                                    HorizontalAlignment="Center"
+                                    Orientation="Horizontal">
+                            <Button MinWidth="132"
+                                    Padding="14,8"
+                                    Command="{Binding StartCommand}"
+                                    Content="启动并连接"
+                                    IsEnabled="{Binding CanStart}" />
+                            <Button Margin="12,0,0,0"
+                                    Padding="14,8"
+                                    Command="{Binding SettingsCommand}"
+                                    Content="自动启动设置" />
+                        </StackPanel>
+
+                        <TextBlock Margin="0,18,0,0"
+                                   HorizontalAlignment="Center"
+                                   FontSize="11"
+                                   Foreground="#80FFFFFF"
+                                   Text="首次连接可能会要求输入当前 Windows 用户的凭据。"
+                                   TextAlignment="Center" />
+                        <TextBlock Margin="0,4,0,0"
+                                   HorizontalAlignment="Center"
+                                   FontSize="11"
+                                   Foreground="#80FFFFFF"
+                                   Text="关闭窗口会断开 RDP 并注销会话，其中程序会被关闭。"
+                                   TextAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>
