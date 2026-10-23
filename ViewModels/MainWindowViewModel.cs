@@ -58,8 +58,8 @@ internal sealed class MainWindowViewModel : ObservableObject
             OnSystemShortcutsReconnectCompleted;
         _childSessionService.AudioReconnectCompleted += OnAudioReconnectCompleted;
 
-        StartCommand = new AsyncRelayCommand(
-            ConnectOrDisconnectAsync,
+        StartCommand = new RelayCommand(
+            ConnectOrDisconnect,
             () => CanConnectOrDisconnect);
         HideCommand = new RelayCommand(() => HideRequested?.Invoke(this, EventArgs.Empty));
         SettingsCommand = new RelayCommand(() => SettingsRequested?.Invoke(this, EventArgs.Empty));
@@ -259,9 +259,11 @@ internal sealed class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
-    /// 连接中或关闭会话期间禁用按钮；已连接时按钮用于断开，因此仍保持可用。
+    /// 关闭会话期间禁用按钮；连接过程中禁用，但已经连上时即使仍处于连接收尾阶段
+    /// 也允许立即断开。
     /// </summary>
-    public bool CanConnectOrDisconnect => !IsConnecting && !IsSessionClosing;
+    public bool CanConnectOrDisconnect =>
+        !IsSessionClosing && (!IsConnecting || IsConnected);
 
     /// <summary>未连接时显示“启动”，已连接时显示“断开”。</summary>
     public string ConnectButtonText => IsConnected ? "断开" : "启动";
@@ -310,8 +312,9 @@ internal sealed class MainWindowViewModel : ObservableObject
 
     /// <summary>
     /// 同一个按钮承担连接和断开：未连接时启动/恢复 RDP，已连接时只断开 RDP。
+    /// 这里使用同步命令，避免异步连接尚未收尾时命令自身一直处于“执行中”而禁用按钮。
     /// </summary>
-    private async Task ConnectOrDisconnectAsync()
+    private void ConnectOrDisconnect()
     {
         if (_childSessionService.ConnectedState == 1)
         {
@@ -319,7 +322,7 @@ internal sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        await StartAsync();
+        _ = StartAsync();
     }
 
     private void DisconnectRdp()
@@ -336,6 +339,11 @@ internal sealed class MainWindowViewModel : ObservableObject
 
     private async Task StartAsync()
     {
+        if (_startRequested)
+        {
+            return;
+        }
+
         if (_childSessionService.ConnectedState != 1
             && ChildSessionService.IsRdpWrapperEnabled())
         {
