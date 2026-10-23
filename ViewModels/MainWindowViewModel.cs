@@ -4,10 +4,10 @@ using MediaBrush = System.Windows.Media.Brush;
 using MediaBrushes = System.Windows.Media.Brushes;
 using Win32OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using WpfApplication = System.Windows.Application;
-using WpfMessageBox = System.Windows.MessageBox;
 using WpfMessageBoxButton = System.Windows.MessageBoxButton;
 using WpfMessageBoxImage = System.Windows.MessageBoxImage;
 using WpfMessageBoxResult = System.Windows.MessageBoxResult;
+using VirtualDesktopRDP.Dialogs;
 using VirtualDesktopRDP.Infrastructure;
 using VirtualDesktopRDP.Services;
 
@@ -304,7 +304,7 @@ internal sealed class MainWindowViewModel : ObservableObject
         if (_childSessionService.ConnectedState != 1
             && ChildSessionService.IsRdpWrapperEnabled())
         {
-            var result = WpfMessageBox.Show(
+            var result = AppMessageBox.Show(
                 "检测到系统已安装并启用 RDP Wrapper。\n\n"
                 + "RDP Wrapper 提供了更强大的远程多用户支持，但与当前虚拟桌面功能不兼容，"
                 + "可能导致无法正常启动。\n\n是否仍要继续？",
@@ -324,7 +324,7 @@ internal sealed class MainWindowViewModel : ObservableObject
             if (_childSessionService.HasEnvironmentIssue)
             {
                 // 这些条件只是风险提示，不应该挡住本来可以连上的用户。
-                var result = WpfMessageBox.Show(
+                var result = AppMessageBox.Show(
                     _childSessionService.EnvironmentIssueSummary
                     + "\n\n检测到可能影响虚拟桌面的环境设置。是否仍要继续？",
                     "虚拟桌面环境检查",
@@ -501,7 +501,7 @@ internal sealed class MainWindowViewModel : ObservableObject
     private static void RepairFirewall()
     {
         var success = FirewallService.EnsureInboundRule();
-        WpfMessageBox.Show(
+        AppMessageBox.Show(
             FirewallService.LastMessage,
             "防火墙规则",
             WpfMessageBoxButton.OK,
@@ -526,7 +526,7 @@ internal sealed class MainWindowViewModel : ObservableObject
         _ = WpfApplication.Current.Dispatcher.BeginInvoke(new Action(() =>
         {
             UpdateConnectionStatus();
-            WpfMessageBox.Show(
+            AppMessageBox.Show(
                 e.Message,
                 "RDP 连接失败",
                 WpfMessageBoxButton.OK,
@@ -634,7 +634,7 @@ internal sealed class MainWindowViewModel : ObservableObject
             ? "\n\n操作被系统拒绝，请确认本程序正在以管理员权限运行。"
             : string.Empty;
 
-        WpfMessageBox.Show(
+        AppMessageBox.Show(
             $"{actualException.Message}{suggestion}",
             "VirtualDesktopRDP",
             WpfMessageBoxButton.OK,

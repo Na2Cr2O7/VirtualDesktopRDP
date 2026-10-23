@@ -1,4 +1,5 @@
 using System.Windows.Threading;
+using VirtualDesktopRDP.Dialogs;
 using VirtualDesktopRDP.Services;
 
 namespace VirtualDesktopRDP;
@@ -22,7 +23,7 @@ public partial class App : System.Windows.Application
         object sender,
         DispatcherUnhandledExceptionEventArgs e)
     {
-        System.Windows.MessageBox.Show(
+        AppMessageBox.Show(
             e.Exception.GetBaseException().Message,
             "VirtualDesktopRDP",
             System.Windows.MessageBoxButton.OK,

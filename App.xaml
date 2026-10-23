@@ -4,5 +4,62 @@
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <!-- 全局直角按钮：3px 边框，不使用圆角。 -->
+        <Style x:Key="AppButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#FF2A2A30" />
+            <Setter Property="BorderBrush" Value="#FF707078" />
+            <Setter Property="BorderThickness" Value="3" />
+            <Setter Property="Foreground" Value="#FFE8E8E8" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="0"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#FF3A3A42" />
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFB0B0B8" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#FF45454D" />
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFD0D0D8" />
+                            </Trigger>
+                            <Trigger Property="IsDefault" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#FF244A6E" />
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FF7FBFFF" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Button" BasedOn="{StaticResource AppButtonStyle}" />
+
+        <Style x:Key="AppDialogButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource AppButtonStyle}" />
+
+        <Style x:Key="AppDialogPrimaryButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource AppButtonStyle}">
+            <Setter Property="Background" Value="#FF244A6E" />
+            <Setter Property="BorderBrush" Value="#FF7FBFFF" />
+        </Style>
     </Application.Resources>
 </Application>

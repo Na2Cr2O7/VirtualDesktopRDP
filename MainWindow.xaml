@@ -19,9 +19,10 @@
         <Style x:Key="ToolbarButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="#FFE8E8E8" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="12,6" />
-            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="BorderBrush" Value="#33FFFFFF" />
+            <Setter Property="BorderThickness" Value="3" />
+            <Setter Property="Padding" Value="9,4" />
+            <Setter Property="Margin" Value="1,0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -29,7 +30,10 @@
                         <Border x:Name="Border"
                                 Padding="{TemplateBinding Padding}"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="5">
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="0"
+                                SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               TextElement.Foreground="{TemplateBinding Foreground}" />
@@ -37,9 +41,11 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Border" Property="Background" Value="#22FFFFFF" />
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#66FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Border" Property="Background" Value="#33FFFFFF" />
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#99FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45" />
@@ -53,9 +59,10 @@
         <Style x:Key="ToolbarToggleButton" TargetType="ToggleButton">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="#FFE8E8E8" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="12,6" />
-            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="BorderBrush" Value="#33FFFFFF" />
+            <Setter Property="BorderThickness" Value="3" />
+            <Setter Property="Padding" Value="9,4" />
+            <Setter Property="Margin" Value="1,0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -63,7 +70,10 @@
                         <Border x:Name="Border"
                                 Padding="{TemplateBinding Padding}"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="5">
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="0"
+                                SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               TextElement.Foreground="{TemplateBinding Foreground}" />
@@ -71,9 +81,11 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Border" Property="Background" Value="#22FFFFFF" />
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#66FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="Border" Property="Background" Value="#3340A0FF" />
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#FF7FBFFF" />
                                 <Setter Property="Foreground" Value="#FF8CC8FF" />
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -166,7 +178,7 @@
                     </Menu>
 
                     <Button Command="{Binding SettingsCommand}"
-                            Content="设置"
+                            Content="自动启动设置"
                             Style="{StaticResource ToolbarButton}" />
                     <Button Command="{Binding CloseCommand}"
                             Content="关闭"
@@ -217,19 +229,9 @@
                         VerticalAlignment="Center"
                         Background="#FF202024"
                         BorderBrush="#33FFFFFF"
-                        BorderThickness="1"
-                        CornerRadius="12">
+                        BorderThickness="3"
+                        CornerRadius="0">
                     <StackPanel>
-                        <Border Width="72"
-                                Height="72"
-                                HorizontalAlignment="Center"
-                                Background="#262FA4E7"
-                                CornerRadius="36">
-                            <TextBlock HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       FontSize="30"
-                                       Text="🖥" />
-                        </Border>
 
                         <StackPanel Margin="0,20,0,0"
                                     HorizontalAlignment="Center"
@@ -257,8 +259,8 @@
                                 Padding="16,12"
                                 Background="#10000000"
                                 BorderBrush="#24FFFFFF"
-                                BorderThickness="1"
-                                CornerRadius="7">
+                                BorderThickness="3"
+                                CornerRadius="0">
                             <StackPanel>
                                 <TextBlock Foreground="#E6FFFFFF" Text="{Binding RdpStatusText}" />
                                 <TextBlock Margin="0,5,0,0"

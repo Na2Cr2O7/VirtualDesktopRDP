@@ -35,7 +35,7 @@
                 Background="#FF202024"
                 BorderBrush="#33FFFFFF"
                 BorderThickness="1"
-                CornerRadius="8">
+                CornerRadius="0">
             <Grid Margin="6">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />

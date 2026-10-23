@@ -74,6 +74,9 @@ Rdp/
   RdpActiveXHost.cs                 MsRdpClient10 AxHost 封装
 ViewModels/
   MainWindowViewModel.cs            主窗口状态与命令
+Dialogs/
+  AppMessageBox.cs                  统一消息框入口
+  AppMessageBoxWindow.xaml          直角 3px 边框消息框
 Infrastructure/
   SettingsService.cs / AppSettings.cs
   ObservableObject.cs / RelayCommand.cs
@@ -84,3 +87,9 @@ SettingsWindow.xaml / SettingsWindow.xaml.cs
 ## 说明
 
 RDP 的登录凭据由 Windows 的 RDP ActiveX 登录流程处理，本程序不保存用户名或密码。首次连接时可能会要求输入当前 Windows 用户的凭据；PIN、Windows Hello、微软账户密码不同步等都可能导致登录失败。
+
+## 来源与许可
+
+本项目从 [BetterGI（better-genshin-impact）](https://github.com/babalae/better-genshin-impact) 的“桌面分身”实现中提取并改写，主要沿用其 Child Session 原生调用、RDP ActiveX 封装、环境检查、进程投递和会话生命周期逻辑。
+
+因此本项目按 **GNU General Public License v3.0（GPLv3）** 发布，完整许可证见 [LICENSE.txt](LICENSE.txt)。分发或修改时请继续遵守 GPLv3。

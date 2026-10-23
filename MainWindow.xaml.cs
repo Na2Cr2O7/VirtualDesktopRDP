@@ -3,12 +3,12 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using VirtualDesktopRDP.Dialogs;
 using VirtualDesktopRDP.Infrastructure;
 using VirtualDesktopRDP.Services;
 using VirtualDesktopRDP.ViewModels;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
-using WpfMessageBox = System.Windows.MessageBox;
 
 namespace VirtualDesktopRDP;
 
@@ -80,12 +80,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        var result = WpfMessageBox.Show(
+        var result = AppMessageBox.Show(
             "关闭会断开 RDP 并注销虚拟桌面，其中所有正在运行的程序都会被关闭，未保存的数据会丢失。是否继续？",
             "关闭 VirtualDesktopRDP",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning,
-            MessageBoxResult.No);
+            MessageBoxResult.No,
+            this);
         if (result != MessageBoxResult.Yes)
         {
             return;
@@ -121,11 +122,13 @@ public partial class MainWindow : Window
         {
             // 注销失败时保留窗口，避免用户误以为会话已经关闭而继续关机或重启。
             _closeInProgress = false;
-            WpfMessageBox.Show(
+            AppMessageBox.Show(
                 exception.GetBaseException().Message,
                 "注销虚拟桌面失败",
                 MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                MessageBoxImage.Error,
+                MessageBoxResult.OK,
+                this);
             return;
         }
 
