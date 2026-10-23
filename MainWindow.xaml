@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
         xmlns:infra="clr-namespace:VirtualDesktopRDP.Infrastructure"
+        xmlns:i18n="clr-namespace:VirtualDesktopRDP.I18n"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="VirtualDesktopRDP"
         Width="1280"
@@ -251,19 +252,19 @@
                             Content="—"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Style="{StaticResource CaptionButton}"
-                            ToolTip="最小化" />
+                            ToolTip="{i18n:T 最小化}" />
                     <Button x:Name="MaximizeRestoreButton"
                             Click="OnMaximizeRestoreClick"
                             Content="□"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Style="{StaticResource CaptionButton}"
-                            ToolTip="最大化" />
+                            ToolTip="{i18n:T 最大化}" />
                     <Button x:Name="CloseWindowButton"
                             Click="OnCloseWindowClick"
                             Content="×"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Style="{StaticResource CaptionButton}"
-                            ToolTip="关闭" />
+                            ToolTip="{i18n:T 关闭}" />
                 </StackPanel>
 
                 <WrapPanel HorizontalAlignment="Right"
@@ -276,11 +277,11 @@
                             Style="{StaticResource ToolbarButton}"
                             ToolTip="{Binding ConnectButtonTooltip}" />
                     <Button Command="{Binding HideCommand}"
-                            Content="隐藏"
+                            Content="{i18n:T 隐藏}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Style="{StaticResource ToolbarButton}" />
                     <ToggleButton Command="{Binding ToggleWatchModeCommand}"
-                                  Content="观看"
+                                  Content="{i18n:T 观看}"
                                   IsChecked="{Binding IsWatchModeEnabled, Mode=OneWay}"
                                   shell:WindowChrome.IsHitTestVisibleInChrome="True"
                                   Style="{StaticResource ToolbarToggleButton}"
@@ -288,7 +289,7 @@
 
                     <ToggleButton x:Name="ControlCenterButton"
                                   Click="OnControlCenterButtonClick"
-                                  Content="控制中心"
+                                  Content="{i18n:T 控制中心}"
                                   shell:WindowChrome.IsHitTestVisibleInChrome="True"
                                   Style="{StaticResource ToolbarToggleButton}" />
 
@@ -306,9 +307,9 @@
                                 BorderBrush="#FF707078"
                                 BorderThickness="3">
                             <StackPanel x:Name="ControlCenterPanel" Margin="6">
-                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="显示" />
+                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="{i18n:T 显示}" />
                                 <ToggleButton Command="{Binding UseAdaptiveCommand}"
-                                              Content="自适应"
+                                              Content="{i18n:T 自适应}"
                                               IsChecked="{Binding IsAdaptive, Mode=OneWay}"
                                               Style="{StaticResource ControlCenterToggle}" />
                                 <ToggleButton Command="{Binding UseOneToOneCommand}"
@@ -316,7 +317,7 @@
                                               IsChecked="{Binding IsOneToOne, Mode=OneWay}"
                                               Style="{StaticResource ControlCenterToggle}" />
                                 <ToggleButton Command="{Binding ToggleKeepAspectRatioCommand}"
-                                              Content="保持 16:9"
+                                              Content="{i18n:T 保持 16:9}"
                                               IsChecked="{Binding KeepAspectRatio, Mode=OneWay}"
                                               Style="{StaticResource ControlCenterToggle}" />
                                 <Button Command="{Binding ToggleSmallWindowCommand}"
@@ -330,20 +331,20 @@
                                         Margin="8,6"
                                         Background="#33FFFFFF" />
 
-                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="快捷键" />
+                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="{i18n:T 快捷键}" />
                                 <ToggleButton Command="{Binding ToggleSendSystemShortcutsCommand}"
-                                              Content="系统组合键发送到虚拟桌面"
+                                              Content="{i18n:T 系统组合键发送到虚拟桌面}"
                                               IsChecked="{Binding SendSystemShortcutsToRemote, Mode=OneWay}"
                                               Style="{StaticResource ControlCenterToggle}" />
                                 <Button Command="{Binding SendShowDesktopCommand}"
-                                        Content="发送 Win+D 显示桌面"
+                                        Content="{i18n:T 发送 Win+D 显示桌面}"
                                         Style="{StaticResource ControlCenterItem}" />
 
                                 <Border Height="1"
                                         Margin="8,6"
                                         Background="#33FFFFFF" />
 
-                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="音频" />
+                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="{i18n:T 音频}" />
                                 <Button Command="{Binding ToggleAudioMutedCommand}"
                                         Content="{Binding AudioMenuHeader}"
                                         Style="{StaticResource ControlCenterItem}" />
@@ -352,19 +353,19 @@
                                         Margin="8,6"
                                         Background="#33FFFFFF" />
 
-                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="更多" />
+                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="{i18n:T 更多}" />
                                 <Button Command="{Binding LaunchExecutableCommand}"
-                                        Content="以管理员权限启动…"
+                                        Content="{i18n:T 以管理员权限启动…}"
                                         Style="{StaticResource ControlCenterItem}" />
                                 <Button Command="{Binding RepairFirewallCommand}"
-                                        Content="修复防火墙规则"
+                                        Content="{i18n:T 修复防火墙规则}"
                                         Style="{StaticResource ControlCenterItem}" />
                             </StackPanel>
                         </Border>
                     </Popup>
 
                     <Button Command="{Binding SettingsCommand}"
-                            Content="自动启动设置"
+                            Content="{i18n:T 自动启动设置}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Style="{StaticResource ToolbarButton}" />
                 </WrapPanel>
@@ -464,25 +465,25 @@
                             <Button MinWidth="132"
                                     Padding="14,8"
                                     Command="{Binding StartCommand}"
-                                    Content="启动并连接"
+                                    Content="{i18n:T 启动并连接}"
                                     IsEnabled="{Binding CanConnectOrDisconnect}" />
                             <Button Margin="12,0,0,0"
                                     Padding="14,8"
                                     Command="{Binding SettingsCommand}"
-                                    Content="自动启动设置" />
+                                    Content="{i18n:T 自动启动设置}" />
                         </StackPanel>
 
                         <TextBlock Margin="0,18,0,0"
                                    HorizontalAlignment="Center"
                                    FontSize="11"
                                    Foreground="#80FFFFFF"
-                                   Text="首次连接可能会要求输入当前 Windows 用户的凭据。"
+                                   Text="{i18n:T 首次连接可能会要求输入当前 Windows 用户的凭据。}"
                                    TextAlignment="Center" />
                         <TextBlock Margin="0,4,0,0"
                                    HorizontalAlignment="Center"
                                    FontSize="11"
                                    Foreground="#80FFFFFF"
-                                   Text="关闭窗口会断开 RDP 并注销会话，其中程序会被关闭。"
+                                   Text="{i18n:T 关闭窗口会断开 RDP 并注销会话，其中程序会被关闭。}"
                                    TextAlignment="Center" />
                     </StackPanel>
                 </Border>

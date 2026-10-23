@@ -1,6 +1,7 @@
 <Window x:Class="VirtualDesktopRDP.Dialogs.AppMessageBoxWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i18n="clr-namespace:VirtualDesktopRDP.I18n"
         Title="VirtualDesktopRDP"
         MinWidth="420"
         MaxWidth="780"
@@ -42,7 +43,7 @@
                             VerticalAlignment="Center"
                             Click="OnCloseClick"
                             Content="×"
-                            ToolTip="关闭" />
+                            ToolTip="{i18n:T 关闭}" />
                 </Grid>
             </Border>
 

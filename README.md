@@ -53,6 +53,14 @@ BetterGI 的应用代码没有防火墙处理；它之所以通常不需要手�
 %LOCALAPPDATA%\VirtualDesktopRDP\settings.json
 ```
 
+## 多语言
+
+界面支持简体中文和 English，可在“自动启动设置”窗口中切换，选择会保存到 `settings.json` 的 `Language` 字段。
+
+- 简体中文原文同时作为翻译键，默认直接显示；
+- 其他语言放在 `I18n/<language>.json`，格式为“中文原文 -> 译文”；
+- 新增语言时添加对应 JSON 文件，并在设置窗口中增加语言选项即可。
+
 ## 构建
 
 ```powershell
@@ -74,6 +82,10 @@ Rdp/
   RdpActiveXHost.cs                 MsRdpClient10 AxHost 封装
 ViewModels/
   MainWindowViewModel.cs            主窗口状态与命令
+I18n/
+  I18nService.cs                    语言切换与翻译查找
+  TExtension.cs                     XAML 翻译标记
+  en-US.json                        英文翻译
 Dialogs/
   AppMessageBox.cs                  统一消息框入口
   AppMessageBoxWindow.xaml          直角 3px 边框消息框

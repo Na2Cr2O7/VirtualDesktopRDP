@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using VirtualDesktopRDP.I18n;
 
 namespace VirtualDesktopRDP.Services;
 
@@ -32,7 +33,8 @@ internal static class FirewallService
         var executablePath = ResolveExecutablePath();
         if (executablePath is null)
         {
-            LastMessage = "当前不是通过 VirtualDesktopRDP.exe 启动，跳过防火墙规则写入。";
+            LastMessage = I18nService.T(
+                "当前不是通过 VirtualDesktopRDP.exe 启动，跳过防火墙规则写入。");
             Trace.WriteLine(LastMessage);
             return false;
         }
@@ -47,7 +49,7 @@ internal static class FirewallService
             var policyType = Type.GetTypeFromProgID("HNetCfg.FwPolicy2");
             if (policyType is null)
             {
-                LastMessage = "系统未提供 HNetCfg.FwPolicy2 防火墙 COM 接口。";
+                LastMessage = I18nService.T("系统未提供 HNetCfg.FwPolicy2 防火墙 COM 接口。");
                 Trace.WriteLine(LastMessage);
                 return false;
             }
@@ -55,7 +57,7 @@ internal static class FirewallService
             policyObject = Activator.CreateInstance(policyType);
             if (policyObject is null)
             {
-                LastMessage = "无法创建 Windows 防火墙策略对象。";
+                LastMessage = I18nService.T("无法创建 Windows 防火墙策略对象。");
                 Trace.WriteLine(LastMessage);
                 return false;
             }
@@ -97,7 +99,7 @@ internal static class FirewallService
 
                 if (existingRuleIsUsable)
                 {
-                    LastMessage = $"防火墙规则已存在：{executablePath}";
+                    LastMessage = I18nService.F("防火墙规则已存在：{0}", executablePath);
                     Trace.WriteLine(LastMessage);
                     return true;
                 }
@@ -110,7 +112,7 @@ internal static class FirewallService
             var ruleType = Type.GetTypeFromProgID("HNetCfg.FwRule");
             if (ruleType is null)
             {
-                LastMessage = "系统未提供 HNetCfg.FwRule 防火墙 COM 接口。";
+                LastMessage = I18nService.T("系统未提供 HNetCfg.FwRule 防火墙 COM 接口。");
                 Trace.WriteLine(LastMessage);
                 return false;
             }
@@ -118,14 +120,15 @@ internal static class FirewallService
             ruleObject = Activator.CreateInstance(ruleType);
             if (ruleObject is null)
             {
-                LastMessage = "无法创建 Windows 防火墙规则对象。";
+                LastMessage = I18nService.T("无法创建 Windows 防火墙规则对象。");
                 Trace.WriteLine(LastMessage);
                 return false;
             }
 
             dynamic rule = ruleObject;
             rule.Name = RuleName;
-            rule.Description = "允许 VirtualDesktopRDP 通过 Windows 防火墙";
+            rule.Description = I18nService.T(
+                "允许 VirtualDesktopRDP 通过 Windows 防火墙");
             rule.Grouping = RuleGrouping;
             rule.ApplicationName = executablePath;
             rule.Direction = DirectionInbound;
@@ -135,14 +138,16 @@ internal static class FirewallService
             rule.Profiles = ProfileAll;
 
             rules.Add(rule);
-            LastMessage = $"已写入防火墙规则：{executablePath}";
+            LastMessage = I18nService.F("已写入防火墙规则：{0}", executablePath);
             Trace.WriteLine(LastMessage);
             return true;
         }
         catch (Exception exception)
         {
             // 防火墙规则属于辅助能力，任何失败都不应阻止程序启动。
-            LastMessage = $"写入防火墙规则失败：{exception.GetBaseException().Message}";
+            LastMessage = I18nService.F(
+                "写入防火墙规则失败：{0}",
+                exception.GetBaseException().Message);
             Trace.WriteLine(LastMessage);
             return false;
         }

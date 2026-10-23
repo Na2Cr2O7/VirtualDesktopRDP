@@ -1,11 +1,12 @@
 <Window x:Class="VirtualDesktopRDP.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="自动启动设置"
+        xmlns:i18n="clr-namespace:VirtualDesktopRDP.I18n"
+        Title="{i18n:T 自动启动设置}"
         Width="760"
-        Height="500"
+        Height="540"
         MinWidth="560"
-        MinHeight="360"
+        MinHeight="420"
         Background="#FF1B1B1F"
         FontFamily="Microsoft YaHei UI"
         Foreground="#FFE8E8E8"
@@ -13,6 +14,7 @@
         WindowStartupLocation="CenterOwner">
     <Grid Margin="22">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -23,15 +25,35 @@
         <TextBlock Grid.Row="0"
                    FontSize="18"
                    FontWeight="SemiBold"
-                   Text="新建虚拟桌面后自动启动的程序" />
+                   Text="{i18n:T 新建虚拟桌面后自动启动的程序}" />
 
         <TextBlock Grid.Row="1"
                    Margin="0,8,0,14"
                    Foreground="#BFFFFFFF"
-                   Text="仅在新建子会话并完成登录后启动；重新连接已有会话不会重复启动。列表中的程序会按顺序以管理员权限启动。"
+                   Text="{i18n:T 仅在新建子会话并完成登录后启动；重新连接已有会话不会重复启动。列表中的程序会按顺序以管理员权限启动。}"
                    TextWrapping="Wrap" />
 
-        <Border Grid.Row="2"
+        <StackPanel Grid.Row="2"
+                    Margin="0,0,0,14"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+            <TextBlock Margin="0,0,16,0"
+                       VerticalAlignment="Center"
+                       Text="{i18n:T 界面语言}" />
+            <RadioButton x:Name="ChineseLanguageRadio"
+                         Margin="0,0,18,0"
+                         VerticalAlignment="Center"
+                         GroupName="Language">
+                <TextBlock Foreground="#FFE8E8E8" Text="简体中文" />
+            </RadioButton>
+            <RadioButton x:Name="EnglishLanguageRadio"
+                         VerticalAlignment="Center"
+                         GroupName="Language">
+                <TextBlock Foreground="#FFE8E8E8" Text="English" />
+            </RadioButton>
+        </StackPanel>
+
+        <Border Grid.Row="3"
                 Background="#FF202024"
                 BorderBrush="#33FFFFFF"
                 BorderThickness="1"
@@ -67,41 +89,41 @@
                     <Button Width="96"
                             Margin="0,0,0,6"
                             Click="OnAddClick"
-                            Content="添加程序…" />
+                            Content="{i18n:T 添加程序…}" />
                     <Button Width="96"
                             Margin="0,0,0,6"
                             Click="OnRemoveClick"
-                            Content="移除" />
+                            Content="{i18n:T 移除}" />
                     <Button Width="96"
                             Margin="0,0,0,6"
                             Click="OnMoveUpClick"
-                            Content="上移" />
+                            Content="{i18n:T 上移}" />
                     <Button Width="96"
                             Click="OnMoveDownClick"
-                            Content="下移" />
+                            Content="{i18n:T 下移}" />
                 </StackPanel>
             </Grid>
         </Border>
 
-        <TextBlock Grid.Row="3"
+        <TextBlock Grid.Row="4"
                    Margin="0,14,0,0"
                    Foreground="#80FFFFFF"
-                   Text="提示：需要管理员权限的程序也能正常启动；如果路径失效，该程序会被跳过，其他程序继续启动。"
+                   Text="{i18n:T 提示：需要管理员权限的程序也能正常启动；如果路径失效，该程序会被跳过，其他程序继续启动。}"
                    TextWrapping="Wrap" />
 
-        <StackPanel Grid.Row="4"
+        <StackPanel Grid.Row="5"
                     Margin="0,18,0,0"
                     HorizontalAlignment="Right"
                     Orientation="Horizontal">
             <Button MinWidth="92"
                     Padding="14,7"
-                    Content="取消"
+                    Content="{i18n:T 取消}"
                     IsCancel="True" />
             <Button MinWidth="92"
                     Margin="10,0,0,0"
                     Padding="14,7"
                     Click="OnConfirmClick"
-                    Content="确定"
+                    Content="{i18n:T 确定}"
                     IsDefault="True" />
         </StackPanel>
     </Grid>

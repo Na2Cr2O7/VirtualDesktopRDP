@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using VirtualDesktopRDP.I18n;
 using WpfButton = System.Windows.Controls.Button;
 
 namespace VirtualDesktopRDP.Dialogs;
@@ -121,27 +122,27 @@ public partial class AppMessageBoxWindow : Window
         {
             MessageBoxButton.OK =>
             [
-                (MessageBoxResult.OK, "确定")
+                (MessageBoxResult.OK, I18nService.T("确定"))
             ],
             MessageBoxButton.OKCancel =>
             [
-                (MessageBoxResult.OK, "确定"),
-                (MessageBoxResult.Cancel, "取消")
+                (MessageBoxResult.OK, I18nService.T("确定")),
+                (MessageBoxResult.Cancel, I18nService.T("取消"))
             ],
             MessageBoxButton.YesNo =>
             [
-                (MessageBoxResult.Yes, "是"),
-                (MessageBoxResult.No, "否")
+                (MessageBoxResult.Yes, I18nService.T("是")),
+                (MessageBoxResult.No, I18nService.T("否"))
             ],
             MessageBoxButton.YesNoCancel =>
             [
-                (MessageBoxResult.Yes, "是"),
-                (MessageBoxResult.No, "否"),
-                (MessageBoxResult.Cancel, "取消")
+                (MessageBoxResult.Yes, I18nService.T("是")),
+                (MessageBoxResult.No, I18nService.T("否")),
+                (MessageBoxResult.Cancel, I18nService.T("取消"))
             ],
             _ =>
             [
-                (MessageBoxResult.OK, "确定")
+                (MessageBoxResult.OK, I18nService.T("确定"))
             ]
         };
     }

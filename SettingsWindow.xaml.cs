@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
+using VirtualDesktopRDP.I18n;
 using VirtualDesktopRDP.Infrastructure;
 using Win32OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 
@@ -19,6 +20,14 @@ public partial class SettingsWindow : Window
         Settings = settings;
         _programs = new ObservableCollection<string>(settings.AutoStartPrograms);
         DataContext = this;
+
+        var language = string.IsNullOrWhiteSpace(settings.Language)
+            ? I18nService.Instance.CurrentLanguage
+            : settings.Language;
+        ChineseLanguageRadio.IsChecked =
+            !language.StartsWith("en", StringComparison.OrdinalIgnoreCase);
+        EnglishLanguageRadio.IsChecked =
+            language.StartsWith("en", StringComparison.OrdinalIgnoreCase);
     }
 
     public AppSettings Settings { get; }
@@ -29,8 +38,8 @@ public partial class SettingsWindow : Window
     {
         var dialog = new Win32OpenFileDialog
         {
-            Title = "选择要自动启动的程序",
-            Filter = "Windows 程序 (*.exe)|*.exe",
+            Title = I18nService.T("选择要自动启动的程序"),
+            Filter = I18nService.T("Windows 程序 (*.exe)|*.exe"),
             CheckFileExists = true,
             CheckPathExists = true,
             DereferenceLinks = true,
@@ -92,8 +101,9 @@ public partial class SettingsWindow : Window
     private void OnConfirmClick(object sender, RoutedEventArgs e)
     {
         Settings.AutoStartPrograms = [.. _programs];
+        Settings.Language = EnglishLanguageRadio.IsChecked == true
+            ? I18nService.EnglishLanguage
+            : I18nService.DefaultLanguage;
         DialogResult = true;
     }
-
-
 }

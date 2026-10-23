@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using VirtualDesktopRDP.Dialogs;
+using VirtualDesktopRDP.I18n;
 using VirtualDesktopRDP.Infrastructure;
 using VirtualDesktopRDP.Services;
 using VirtualDesktopRDP.ViewModels;
@@ -30,9 +31,11 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        _settingsService = new SettingsService();
+        I18nService.Instance.ChangeLanguage(_settingsService.Current.Language);
+
         InitializeComponent();
 
-        _settingsService = new SettingsService();
         _childSessionService = new ChildSessionService(_settingsService);
         _viewModel = new MainWindowViewModel(_childSessionService);
         DataContext = _viewModel;
@@ -53,6 +56,7 @@ public partial class MainWindow : Window
         _lastHeight = Height;
         SizeChanged += OnWindowSizeChanged;
         TitleBar.SizeChanged += OnTitleBarSizeChanged;
+        I18nService.Instance.LanguageChanged += OnLanguageChanged;
         UpdateMaximizeRestoreButton();
     }
 
@@ -112,7 +116,15 @@ public partial class MainWindow : Window
 
         var maximized = WindowState == WindowState.Maximized;
         MaximizeRestoreButton.Content = maximized ? "❐" : "□";
-        MaximizeRestoreButton.ToolTip = maximized ? "还原" : "最大化";
+        MaximizeRestoreButton.ToolTip = maximized
+            ? I18nService.T("还原")
+            : I18nService.T("最大化");
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        UpdateMaximizeRestoreButton();
+        UpdateTrayMenuText();
     }
 
     protected override void OnClosing(CancelEventArgs e)
@@ -138,8 +150,8 @@ public partial class MainWindow : Window
         }
 
         var result = AppMessageBox.Show(
-            "关闭会断开 RDP 并注销虚拟桌面，其中所有正在运行的程序都会被关闭，未保存的数据会丢失。是否继续？",
-            "关闭 VirtualDesktopRDP",
+            I18nService.T("关闭会断开 RDP 并注销虚拟桌面，其中所有正在运行的程序都会被关闭，未保存的数据会丢失。是否继续？"),
+            I18nService.T("关闭 VirtualDesktopRDP"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning,
             MessageBoxResult.No,
@@ -158,6 +170,7 @@ public partial class MainWindow : Window
         SizeChanged -= OnWindowSizeChanged;
         TitleBar.SizeChanged -= OnTitleBarSizeChanged;
         RdpHostContainer.IsVisibleChanged -= OnRdpHostVisibilityChanged;
+        I18nService.Instance.LanguageChanged -= OnLanguageChanged;
 
         SaveWindowPlacement();
         _trayIcon.Visible = false;
@@ -182,7 +195,7 @@ public partial class MainWindow : Window
             _closeInProgress = false;
             AppMessageBox.Show(
                 exception.GetBaseException().Message,
-                "注销虚拟桌面失败",
+                I18nService.T("注销虚拟桌面失败"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Error,
                 MessageBoxResult.OK,
@@ -205,7 +218,8 @@ public partial class MainWindow : Window
 
         _trayHintShown = true;
         _trayIcon.BalloonTipTitle = "VirtualDesktopRDP";
-        _trayIcon.BalloonTipText = "虚拟桌面仍在运行，双击托盘图标可重新打开窗口。";
+        _trayIcon.BalloonTipText = I18nService.T(
+            "虚拟桌面仍在运行，双击托盘图标可重新打开窗口。");
         _trayIcon.ShowBalloonTip(2500);
     }
 
@@ -218,6 +232,7 @@ public partial class MainWindow : Window
         if (window.ShowDialog() == true)
         {
             _settingsService.Update(window.Settings);
+            I18nService.Instance.ChangeLanguage(window.Settings.Language);
         }
     }
 
@@ -384,13 +399,19 @@ public partial class MainWindow : Window
     private Forms.NotifyIcon CreateTrayIcon()
     {
         var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("显示主窗口", null, (_, _) => Dispatcher.Invoke(ShowFromTray));
         menu.Items.Add(
-            "自动启动设置",
+            I18nService.T("显示主窗口"),
+            null,
+            (_, _) => Dispatcher.Invoke(ShowFromTray));
+        menu.Items.Add(
+            I18nService.T("自动启动设置"),
             null,
             (_, _) => Dispatcher.Invoke(ShowSettingsFromTray));
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("退出", null, (_, _) => Dispatcher.Invoke(Close));
+        menu.Items.Add(
+            I18nService.T("退出"),
+            null,
+            (_, _) => Dispatcher.Invoke(Close));
 
         var icon = new Forms.NotifyIcon
         {
@@ -401,6 +422,19 @@ public partial class MainWindow : Window
         };
         icon.DoubleClick += (_, _) => Dispatcher.Invoke(ShowFromTray);
         return icon;
+    }
+
+    private void UpdateTrayMenuText()
+    {
+        var items = _trayIcon.ContextMenuStrip?.Items;
+        if (items is null || items.Count < 4)
+        {
+            return;
+        }
+
+        items[0].Text = I18nService.T("显示主窗口");
+        items[1].Text = I18nService.T("自动启动设置");
+        items[3].Text = I18nService.T("退出");
     }
 
     private void ShowFromTray()

@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Threading;
+using VirtualDesktopRDP.I18n;
 using VirtualDesktopRDP.Infrastructure;
 using VirtualDesktopRDP.Rdp;
 using DrawingSize = System.Drawing.Size;
@@ -72,7 +73,7 @@ internal sealed class ChildSessionService : IDisposable
 
     public RdpActiveXHost RdpHost { get; }
 
-    public string StatusText { get; private set; } = "虚拟桌面尚未启动";
+    public string StatusText { get; private set; } = I18nService.T("虚拟桌面尚未启动");
 
     public int ConnectedState { get; private set; }
 
@@ -145,7 +146,7 @@ internal sealed class ChildSessionService : IDisposable
 
             try
             {
-                ConnectCore("正在启动虚拟桌面");
+                ConnectCore(I18nService.T("正在启动虚拟桌面"));
             }
             catch
             {
@@ -201,7 +202,7 @@ internal sealed class ChildSessionService : IDisposable
         _connectionAttemptCompletionSource?.TrySetResult(false);
 
         RdpHost.DisconnectSession();
-        RefreshState("已断开 RDP 连接，虚拟桌面会话仍在运行");
+        RefreshState(I18nService.T("已断开 RDP 连接，虚拟桌面会话仍在运行"));
     }
 
     /// <summary>切换 RDP 画面自适应 / 1:1。</summary>
@@ -211,7 +212,9 @@ internal sealed class ChildSessionService : IDisposable
         RdpHost.SetSmartSizing(enabled);
         Settings.SmartSizingEnabled = enabled;
         _settingsService.Save();
-        RefreshState(enabled ? "窗口显示模式已切换为自适应" : "窗口显示模式已切换为 1:1");
+        RefreshState(enabled
+            ? I18nService.T("窗口显示模式已切换为自适应")
+            : I18nService.T("窗口显示模式已切换为 1:1"));
     }
 
     /// <summary>切换窗口是否保持 16:9。</summary>
@@ -220,7 +223,9 @@ internal sealed class ChildSessionService : IDisposable
         ThrowIfDisposed();
         Settings.KeepAspectRatio = enabled;
         _settingsService.Save();
-        RefreshState(enabled ? "窗口将保持 16:9 宽高比" : "窗口不再保持宽高比");
+        RefreshState(enabled
+            ? I18nService.T("窗口将保持 16:9 宽高比")
+            : I18nService.T("窗口不再保持宽高比"));
     }
 
     /// <summary>切换窗口置顶。</summary>
@@ -229,7 +234,9 @@ internal sealed class ChildSessionService : IDisposable
         ThrowIfDisposed();
         Settings.TopmostEnabled = enabled;
         _settingsService.Save();
-        RefreshState(enabled ? "窗口已置顶" : "窗口已取消置顶");
+        RefreshState(enabled
+            ? I18nService.T("窗口已置顶")
+            : I18nService.T("窗口已取消置顶"));
     }
 
     /// <summary>
@@ -247,10 +254,12 @@ internal sealed class ChildSessionService : IDisposable
         Settings.SendSystemShortcutsToRemote = enabled;
         _settingsService.Save();
         RdpHost.SetSendSystemShortcutsToRemote(enabled);
-        var target = enabled ? "虚拟桌面" : "本机";
+        var target = enabled
+            ? I18nService.T("虚拟桌面")
+            : I18nService.T("本机");
         return ReconnectForRdpSettingChange(
             RdpSettingChange.SystemShortcuts,
-            $"系统组合键已改为在{target}生效");
+            I18nService.F("系统组合键已改为在{0}生效", target));
     }
 
     /// <summary>
@@ -270,7 +279,9 @@ internal sealed class ChildSessionService : IDisposable
         RdpHost.SetAudioMuted(muted);
         return ReconnectForRdpSettingChange(
             RdpSettingChange.Audio,
-            muted ? "虚拟桌面声音已关闭" : "虚拟桌面声音已开启");
+            muted
+                ? I18nService.T("虚拟桌面声音已关闭")
+                : I18nService.T("虚拟桌面声音已开启"));
     }
 
     /// <summary>观看模式：画面正常显示，但本机键鼠不会进入子会话。</summary>
@@ -281,8 +292,8 @@ internal sealed class ChildSessionService : IDisposable
         _settingsService.Save();
         RdpHost.SetInputBlocked(enabled);
         RefreshState(enabled
-            ? "已进入观看模式，本机鼠标和键盘不会进入虚拟桌面"
-            : "已退出观看模式，可以操作虚拟桌面");
+            ? I18nService.T("已进入观看模式，本机鼠标和键盘不会进入虚拟桌面")
+            : I18nService.T("已退出观看模式，可以操作虚拟桌面"));
     }
 
     /// <summary>向子会话发送 Win+D。</summary>
@@ -290,7 +301,7 @@ internal sealed class ChildSessionService : IDisposable
     {
         ThrowIfDisposed();
         RdpHost.SendShowDesktopShortcut();
-        RefreshState("已向虚拟桌面发送 Win+D");
+        RefreshState(I18nService.T("已向虚拟桌面发送 Win+D"));
     }
 
     /// <summary>以管理员权限在子会话中启动指定程序。</summary>
@@ -302,11 +313,14 @@ internal sealed class ChildSessionService : IDisposable
         await _launchSemaphore.WaitAsync();
         try
         {
-            RefreshState($"正在以管理员权限启动 {Path.GetFileName(executablePath)}");
+            RefreshState(I18nService.F(
+                "正在以管理员权限启动 {0}",
+                Path.GetFileName(executablePath)));
             await ChildSessionProcessLauncher.LaunchElevatedAsync(childSessionId, executablePath);
-            RefreshState(
-                $"已在虚拟桌面（会话 {childSessionId}）中以管理员权限启动 "
-                + $"{Path.GetFileName(executablePath)}");
+            RefreshState(I18nService.F(
+                "已在虚拟桌面（会话 {0}）中以管理员权限启动 {1}",
+                childSessionId,
+                Path.GetFileName(executablePath)));
         }
         finally
         {
@@ -327,8 +341,10 @@ internal sealed class ChildSessionService : IDisposable
                 && activeSessionId is { } active
                 && active != expected)
             {
-                throw new InvalidOperationException(
-                    $"虚拟桌面会话已从 {expected} 变更为 {active}，已取消注销操作。");
+                throw new InvalidOperationException(I18nService.F(
+                    "虚拟桌面会话已从 {0} 变更为 {1}，已取消注销操作。",
+                    expected,
+                    active));
             }
 
             _autoStartPending = false;
@@ -338,18 +354,27 @@ internal sealed class ChildSessionService : IDisposable
             _connectionAttemptCompletionSource?.TrySetResult(false);
 
             TryDisconnectRdpHost();
-            RefreshState("正在断开 RDP 并注销虚拟桌面");
+            RefreshState(I18nService.T("正在断开 RDP 并注销虚拟桌面"));
 
             var terminatedSessionId = await Task.Run(() =>
                 ChildSessionNativeMethods.TerminateChildSession(expectedSessionId, wait: true));
             RefreshState(terminatedSessionId is null
-                ? "当前没有虚拟桌面会话"
-                : $"虚拟桌面会话 {terminatedSessionId.Value} 已注销");
+                ? I18nService.T("当前没有虚拟桌面会话")
+                : I18nService.F(
+                    "虚拟桌面会话 {0} 已注销",
+                    terminatedSessionId.Value));
         }
         finally
         {
             _launchSemaphore.Release();
         }
+    }
+
+    /// <summary>语言切换后丢弃旧语言的操作提示，并按当前连接状态重新生成状态文本。</summary>
+    public void RefreshLanguage()
+    {
+        _lastOperationMessage = null;
+        RefreshState();
     }
 
     /// <summary>刷新连接状态、Child Session ID 与状态文本。</summary>
@@ -373,16 +398,18 @@ internal sealed class ChildSessionService : IDisposable
 
             var connectionText = ConnectedState switch
             {
-                0 => "未连接",
-                1 => "已连接",
-                2 => "正在连接",
-                _ => $"未知连接状态 {ConnectedState}"
+                0 => I18nService.T("未连接"),
+                1 => I18nService.T("已连接"),
+                2 => I18nService.T("正在连接"),
+                _ => I18nService.F("未知连接状态 {0}", ConnectedState)
             };
-            var sessionText = ChildSessionId?.ToString() ?? "无";
+            var sessionText = ChildSessionId?.ToString() ?? I18nService.T("无");
             var mainText = _lastOperationMessage ?? connectionText;
 
             StatusText =
-                $"{mainText} | RDP：{connectionText} | 虚拟桌面会话：{sessionText} | RDP功能已启用：{enabled}";
+                $"{mainText} | {I18nService.T("RDP：")}{connectionText} | "
+                + $"{I18nService.T("虚拟桌面会话：")}{sessionText} | "
+                + $"{I18nService.T("RDP功能已启用：")}{enabled}";
         }
         catch (Exception exception) when (IsExpectedChildSessionException(exception))
         {
@@ -490,7 +517,7 @@ internal sealed class ChildSessionService : IDisposable
             _pendingRdpSettingChanges = RdpSettingChange.None;
             _rdpSettingsReconnectRetriesRemaining = 0;
             _rdpSettingsReconnectRetryInProgress = false;
-            RefreshState("自动重新连接完成，RDP 设置已生效");
+            RefreshState(I18nService.T("自动重新连接完成，RDP 设置已生效"));
 
             if (completedSettingChanges.HasFlag(RdpSettingChange.SystemShortcuts))
             {
@@ -504,7 +531,7 @@ internal sealed class ChildSessionService : IDisposable
         }
         else
         {
-            RefreshState("虚拟桌面登录初始化完成");
+            RefreshState(I18nService.T("虚拟桌面登录初始化完成"));
         }
 
         if (!_autoStartPending)
@@ -529,7 +556,9 @@ internal sealed class ChildSessionService : IDisposable
         }
         catch (Exception exception) when (IsExpectedChildSessionException(exception))
         {
-            RefreshState($"自动启动程序失败：{exception.GetBaseException().Message}");
+            RefreshState(I18nService.F(
+                "自动启动程序失败：{0}",
+                exception.GetBaseException().Message));
         }
     }
 
@@ -544,7 +573,7 @@ internal sealed class ChildSessionService : IDisposable
             .ToArray();
         if (programs.Length == 0)
         {
-            RefreshState("虚拟桌面登录完成");
+            RefreshState(I18nService.T("虚拟桌面登录完成"));
             return;
         }
 
@@ -556,8 +585,11 @@ internal sealed class ChildSessionService : IDisposable
             {
                 var program = programs[index];
                 var fileName = Path.GetFileName(program);
-                RefreshState(
-                    $"正在自动启动 {fileName}（{index + 1}/{programs.Length}）");
+                RefreshState(I18nService.F(
+                    "正在自动启动 {0}（{1}/{2}）",
+                    fileName,
+                    index + 1,
+                    programs.Length));
 
                 try
                 {
@@ -568,14 +600,21 @@ internal sealed class ChildSessionService : IDisposable
                 }
                 catch (Exception exception) when (IsExpectedChildSessionException(exception))
                 {
-                    RefreshState(
-                        $"自动启动 {fileName} 失败：{exception.GetBaseException().Message}");
+                    RefreshState(I18nService.F(
+                        "自动启动 {0} 失败：{1}",
+                        fileName,
+                        exception.GetBaseException().Message));
                 }
             }
 
             RefreshState(launchedCount == programs.Length
-                ? $"虚拟桌面登录完成，已启动 {launchedCount} 个自动启动程序"
-                : $"虚拟桌面登录完成，自动启动成功 {launchedCount}/{programs.Length} 个");
+                ? I18nService.F(
+                    "虚拟桌面登录完成，已启动 {0} 个自动启动程序",
+                    launchedCount)
+                : I18nService.F(
+                    "虚拟桌面登录完成，自动启动成功 {0}/{1} 个",
+                    launchedCount,
+                    programs.Length));
         }
         finally
         {
@@ -627,9 +666,11 @@ internal sealed class ChildSessionService : IDisposable
         _rdpSettingsReconnectRetriesRemaining--;
         var retryDelay = TimeSpan.FromSeconds(1 << retryNumber);
 
-        RefreshState(
-            $"RDP 自动重连暂未成功，{retryDelay.TotalSeconds:0} 秒后重试"
-            + $"（{retryNumber}/{RdpSettingsReconnectRetryCount}）");
+        RefreshState(I18nService.F(
+            "RDP 自动重连暂未成功，{0} 秒后重试（{1}/{2}）",
+            retryDelay.TotalSeconds,
+            retryNumber,
+            RdpSettingsReconnectRetryCount));
 
         try
         {
@@ -639,8 +680,10 @@ internal sealed class ChildSessionService : IDisposable
                 return;
             }
 
-            RefreshState(
-                $"正在重试 RDP 自动连接（{retryNumber}/{RdpSettingsReconnectRetryCount}）");
+            RefreshState(I18nService.F(
+                "正在重试 RDP 自动连接（{0}/{1}）",
+                retryNumber,
+                RdpSettingsReconnectRetryCount));
             _rdpSettingsReconnectRetryInProgress = false;
             RdpHost.ReconnectToChildSession(DefaultDesktopSize);
         }
@@ -654,7 +697,7 @@ internal sealed class ChildSessionService : IDisposable
                 ? comException.ErrorCode
                 : 0;
             retryFailure = new ChildSessionConnectionFailedEventArgs(
-                $"RDP 自动重新连接失败：{actualException.Message}",
+                I18nService.F("RDP 自动重新连接失败：{0}", actualException.Message),
                 errorCode);
         }
         finally
@@ -677,9 +720,11 @@ internal sealed class ChildSessionService : IDisposable
         _initialConnectionRetriesRemaining--;
         var retryDelay = TimeSpan.FromSeconds(1 << (retryNumber - 1));
 
-        RefreshState(
-            $"虚拟桌面首次连接尚未完成，{retryDelay.TotalSeconds:0} 秒后自动重试"
-            + $"（{retryNumber}/{InitialConnectionRetryCount}）");
+        RefreshState(I18nService.F(
+            "虚拟桌面首次连接尚未完成，{0} 秒后自动重试（{1}/{2}）",
+            retryDelay.TotalSeconds,
+            retryNumber,
+            InitialConnectionRetryCount));
 
         try
         {
@@ -690,8 +735,10 @@ internal sealed class ChildSessionService : IDisposable
             }
 
             RefreshState();
-            RefreshState(
-                $"正在重试虚拟桌面连接（{retryNumber}/{InitialConnectionRetryCount}）");
+            RefreshState(I18nService.F(
+                "正在重试虚拟桌面连接（{0}/{1}）",
+                retryNumber,
+                InitialConnectionRetryCount));
             _connectionRetryInProgress = false;
             // OnLogonError 触发后 ActiveX 可能仍处于连接状态，必须先断开再重连。
             RdpHost.ReconnectToChildSession(DefaultDesktopSize);
@@ -706,7 +753,7 @@ internal sealed class ChildSessionService : IDisposable
                 ? comException.ErrorCode
                 : 0;
             retryFailure = new ChildSessionConnectionFailedEventArgs(
-                $"重试虚拟桌面连接失败：{actualException.Message}",
+                I18nService.F("重试虚拟桌面连接失败：{0}", actualException.Message),
                 errorCode);
         }
         finally
@@ -737,20 +784,23 @@ internal sealed class ChildSessionService : IDisposable
 
     private ChildSessionConnectionFailedEventArgs CreateConnectionTimeoutFailure()
     {
-        var timeoutMessage =
-            $"虚拟桌面连接及登录初始化未能在 {ConnectionTimeout.TotalSeconds:0} 秒内完成。";
+        var timeoutMessage = I18nService.F(
+            "虚拟桌面连接及登录初始化未能在 {0} 秒内完成。",
+            ConnectionTimeout.TotalSeconds);
         var lastDiagnostic =
             RdpHost.LastConnectionDiagnostic
             ?? _lastConnectionFailure;
         if (lastDiagnostic is null)
         {
             return new ChildSessionConnectionFailedEventArgs(
-                $"{timeoutMessage}\n\nRDP ActiveX 未报告更具体的失败原因。",
+                $"{timeoutMessage}\n\n"
+                + I18nService.T("RDP ActiveX 未报告更具体的失败原因。"),
                 ErrorTimeout);
         }
 
         return new ChildSessionConnectionFailedEventArgs(
-            $"{timeoutMessage}\n\nRDP ActiveX 最后报告：\n{lastDiagnostic.Message}",
+            $"{timeoutMessage}\n\n"
+            + I18nService.F("RDP ActiveX 最后报告：{0}", lastDiagnostic.Message),
             lastDiagnostic.ErrorCode,
             lastDiagnostic.ExtendedErrorCode);
     }
@@ -763,10 +813,10 @@ internal sealed class ChildSessionService : IDisposable
         if (ChildSessionNativeMethods.TryGetChildSessionId() is null)
         {
             builder.AppendLine().AppendLine();
-            builder.Append(
+            builder.Append(I18nService.T(
                 "诊断：当前没有可用的虚拟桌面会话，说明 Windows 未能建立 RDP 会话。"
                 + "该状态本身无法确定原因——系统无法创建会话与凭据未通过验证都会得到这个结果，"
-                + "请结合上面的 RDP ActiveX 错误信息一并判断。");
+                + "请结合上面的 RDP ActiveX 错误信息一并判断。"));
         }
 
         if (_environmentIssues.Count > 0)
@@ -783,7 +833,8 @@ internal sealed class ChildSessionService : IDisposable
         var childSessionId = ChildSessionNativeMethods.TryGetChildSessionId();
         if (childSessionId is null)
         {
-            throw new InvalidOperationException("当前没有可用的虚拟桌面，请先启动虚拟桌面。");
+            throw new InvalidOperationException(
+                I18nService.T("当前没有可用的虚拟桌面，请先启动虚拟桌面。"));
         }
 
         return childSessionId.Value;
@@ -796,7 +847,9 @@ internal sealed class ChildSessionService : IDisposable
         RefreshState();
         if (RdpHost.ConnectedState == 0 && ChildSessionId is null)
         {
-            RefreshState($"{operationMessage}，将在下次 RDP 连接后应用");
+            RefreshState(I18nService.F(
+                "{0}，将在下次 RDP 连接后应用",
+                operationMessage));
             return false;
         }
 
@@ -818,7 +871,9 @@ internal sealed class ChildSessionService : IDisposable
             throw;
         }
 
-        RefreshState($"{operationMessage}，正在自动重新连接 RDP");
+        RefreshState(I18nService.F(
+            "{0}，正在自动重新连接 RDP",
+            operationMessage));
         return true;
     }
 

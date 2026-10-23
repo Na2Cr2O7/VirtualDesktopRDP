@@ -8,6 +8,7 @@ using WpfMessageBoxButton = System.Windows.MessageBoxButton;
 using WpfMessageBoxImage = System.Windows.MessageBoxImage;
 using WpfMessageBoxResult = System.Windows.MessageBoxResult;
 using VirtualDesktopRDP.Dialogs;
+using VirtualDesktopRDP.I18n;
 using VirtualDesktopRDP.Infrastructure;
 using VirtualDesktopRDP.Services;
 
@@ -57,6 +58,7 @@ internal sealed class MainWindowViewModel : ObservableObject
         _childSessionService.SystemShortcutsReconnectCompleted +=
             OnSystemShortcutsReconnectCompleted;
         _childSessionService.AudioReconnectCompleted += OnAudioReconnectCompleted;
+        I18nService.Instance.LanguageChanged += OnLanguageChanged;
 
         StartCommand = new RelayCommand(
             ConnectOrDisconnect,
@@ -266,19 +268,29 @@ internal sealed class MainWindowViewModel : ObservableObject
         !IsSessionClosing && (!IsConnecting || IsConnected);
 
     /// <summary>未连接时显示“启动”，已连接时显示“断开”。</summary>
-    public string ConnectButtonText => IsConnected ? "断开" : "启动";
+    public string ConnectButtonText => IsConnected
+        ? I18nService.T("断开")
+        : I18nService.T("启动");
 
     public string ConnectButtonTooltip => IsConnected
-        ? "断开 RDP 连接，虚拟桌面会话和窗口保持运行"
-        : "启动并连接 RDP";
+        ? I18nService.T("断开 RDP 连接，虚拟桌面会话和窗口保持运行")
+        : I18nService.T("启动并连接 RDP");
 
-    public string TopmostMenuHeader => IsTopmost ? "取消置顶" : "置顶";
+    public string TopmostMenuHeader => IsTopmost
+        ? I18nService.T("取消置顶")
+        : I18nService.T("置顶");
 
-    public string WatchModeMenuHeader => IsWatchModeEnabled ? "退出观看模式" : "观看模式";
+    public string WatchModeMenuHeader => IsWatchModeEnabled
+        ? I18nService.T("退出观看模式")
+        : I18nService.T("观看模式");
 
-    public string SmallWindowMenuHeader => IsSmallWindowMode ? "还原窗口" : "小窗模式";
+    public string SmallWindowMenuHeader => IsSmallWindowMode
+        ? I18nService.T("还原窗口")
+        : I18nService.T("小窗模式");
 
-    public string AudioMenuHeader => IsAudioMuted ? "开启声音" : "静音";
+    public string AudioMenuHeader => IsAudioMuted
+        ? I18nService.T("开启声音")
+        : I18nService.T("静音");
 
     /// <summary>关闭会话并释放服务；由窗口在确认关闭后调用。</summary>
     public async Task CloseSessionAsync()
@@ -308,6 +320,19 @@ internal sealed class MainWindowViewModel : ObservableObject
         _childSessionService.SystemShortcutsReconnectCompleted -=
             OnSystemShortcutsReconnectCompleted;
         _childSessionService.AudioReconnectCompleted -= OnAudioReconnectCompleted;
+        I18nService.Instance.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(ConnectButtonText));
+        OnPropertyChanged(nameof(ConnectButtonTooltip));
+        OnPropertyChanged(nameof(TopmostMenuHeader));
+        OnPropertyChanged(nameof(WatchModeMenuHeader));
+        OnPropertyChanged(nameof(SmallWindowMenuHeader));
+        OnPropertyChanged(nameof(AudioMenuHeader));
+        _childSessionService.RefreshLanguage();
+        UpdateConnectionStatus();
     }
 
     /// <summary>
@@ -348,10 +373,12 @@ internal sealed class MainWindowViewModel : ObservableObject
             && ChildSessionService.IsRdpWrapperEnabled())
         {
             var result = AppMessageBox.Show(
-                "检测到系统已安装并启用 RDP Wrapper。\n\n"
-                + "RDP Wrapper 提供了更强大的远程多用户支持，但与当前虚拟桌面功能不兼容，"
-                + "可能导致无法正常启动。\n\n是否仍要继续？",
-                "RDP Wrapper 兼容性提醒",
+                I18nService.T("检测到系统已安装并启用 RDP Wrapper。")
+                + "\n\n"
+                + I18nService.T("RDP Wrapper 提供了更强大的远程多用户支持，但与当前虚拟桌面功能不兼容，可能导致无法正常启动。")
+                + "\n\n"
+                + I18nService.T("是否仍要继续？"),
+                I18nService.T("RDP Wrapper 兼容性提醒"),
                 WpfMessageBoxButton.YesNo,
                 WpfMessageBoxImage.Warning,
                 WpfMessageBoxResult.No);
@@ -369,8 +396,9 @@ internal sealed class MainWindowViewModel : ObservableObject
                 // 这些条件只是风险提示，不应该挡住本来可以连上的用户。
                 var result = AppMessageBox.Show(
                     _childSessionService.EnvironmentIssueSummary
-                    + "\n\n检测到可能影响虚拟桌面的环境设置。是否仍要继续？",
-                    "虚拟桌面环境检查",
+                    + "\n\n"
+                    + I18nService.T("检测到可能影响虚拟桌面的环境设置。是否仍要继续？"),
+                    I18nService.T("虚拟桌面环境检查"),
                     WpfMessageBoxButton.YesNo,
                     WpfMessageBoxImage.Warning,
                     WpfMessageBoxResult.Yes);
@@ -505,8 +533,8 @@ internal sealed class MainWindowViewModel : ObservableObject
     {
         var fileDialog = new Win32OpenFileDialog
         {
-            Title = "选择要在虚拟桌面中以管理员权限启动的程序",
-            Filter = "Windows 程序 (*.exe)|*.exe",
+            Title = I18nService.T("选择要在虚拟桌面中以管理员权限启动的程序"),
+            Filter = I18nService.T("Windows 程序 (*.exe)|*.exe"),
             CheckFileExists = true,
             CheckPathExists = true,
             DereferenceLinks = true,
@@ -546,7 +574,7 @@ internal sealed class MainWindowViewModel : ObservableObject
         var success = FirewallService.EnsureInboundRule();
         AppMessageBox.Show(
             FirewallService.LastMessage,
-            "防火墙规则",
+            I18nService.T("防火墙规则"),
             WpfMessageBoxButton.OK,
             success ? WpfMessageBoxImage.Information : WpfMessageBoxImage.Warning);
     }
@@ -571,7 +599,7 @@ internal sealed class MainWindowViewModel : ObservableObject
             UpdateConnectionStatus();
             AppMessageBox.Show(
                 e.Message,
-                "RDP 连接失败",
+                I18nService.T("RDP 连接失败"),
                 WpfMessageBoxButton.OK,
                 WpfMessageBoxImage.Error);
         }));
@@ -615,50 +643,52 @@ internal sealed class MainWindowViewModel : ObservableObject
         if (IsSessionClosing)
         {
             StatusBrush = MediaBrushes.Orange;
-            StatusTitle = "正在关闭虚拟桌面";
-            StatusDescription = "正在断开 RDP 并注销会话，此过程可能需要一些时间。";
-            RdpStatusText = connectedState == 0 ? "RDP 已断开" : "正在断开 RDP";
+            StatusTitle = I18nService.T("正在关闭虚拟桌面");
+            StatusDescription = I18nService.T("正在断开 RDP 并注销会话，此过程可能需要一些时间。");
+            RdpStatusText = connectedState == 0
+                ? I18nService.T("RDP 已断开")
+                : I18nService.T("正在断开 RDP");
             ChildSessionStatusText = childSessionId is null
-                ? "正在确认会话已注销"
-                : $"正在注销会话 {childSessionId.Value}";
+                ? I18nService.T("正在确认会话已注销")
+                : I18nService.F("正在注销会话 {0}", childSessionId.Value);
             return;
         }
 
         if (IsConnected)
         {
             StatusBrush = MediaBrushes.LimeGreen;
-            StatusTitle = "虚拟桌面已连接";
-            StatusDescription = "RDP 连接正常，可以直接在虚拟桌面中操作。";
+            StatusTitle = I18nService.T("虚拟桌面已连接");
+            StatusDescription = I18nService.T("RDP 连接正常，可以直接在虚拟桌面中操作。");
         }
         else if (connectedState == 2 || _startRequested)
         {
             StatusBrush = childSessionId is null ? MediaBrushes.IndianRed : MediaBrushes.DodgerBlue;
-            StatusTitle = "正在连接虚拟桌面";
-            StatusDescription = "正在创建或恢复 RDP 连接，请稍候。";
+            StatusTitle = I18nService.T("正在连接虚拟桌面");
+            StatusDescription = I18nService.T("正在创建或恢复 RDP 连接，请稍候。");
         }
         else if (childSessionId is not null)
         {
             StatusBrush = MediaBrushes.DodgerBlue;
-            StatusTitle = "虚拟桌面已启动，等待连接";
-            StatusDescription = "会话仍在运行，点击“启动”可重新建立 RDP 连接。";
+            StatusTitle = I18nService.T("虚拟桌面已启动，等待连接");
+            StatusDescription = I18nService.T("会话仍在运行，点击“启动”可重新建立 RDP 连接。");
         }
         else
         {
             StatusBrush = MediaBrushes.IndianRed;
-            StatusTitle = "虚拟桌面尚未启动";
-            StatusDescription = "点击“启动”，创建一个独立的 Windows 会话。";
+            StatusTitle = I18nService.T("虚拟桌面尚未启动");
+            StatusDescription = I18nService.T("点击“启动”，创建一个独立的 Windows 会话。");
         }
 
         RdpStatusText = connectedState switch
         {
-            0 => "RDP 未连接",
-            1 => "RDP 已连接",
-            2 => "RDP 正在连接",
-            _ => $"RDP 状态未知（{connectedState}）"
+            0 => I18nService.T("RDP 未连接"),
+            1 => I18nService.T("RDP 已连接"),
+            2 => I18nService.T("RDP 正在连接"),
+            _ => I18nService.F("RDP 状态未知（{0}）", connectedState)
         };
         ChildSessionStatusText = childSessionId is null
-            ? "虚拟桌面会话未创建"
-            : $"虚拟桌面会话 {childSessionId.Value}";
+            ? I18nService.T("虚拟桌面会话未创建")
+            : I18nService.F("虚拟桌面会话 {0}", childSessionId.Value);
 
         OnPropertyChanged(nameof(CanConnectOrDisconnect));
         OnPropertyChanged(nameof(ConnectButtonText));
@@ -676,7 +706,7 @@ internal sealed class MainWindowViewModel : ObservableObject
         {
             NativeErrorCode: 5
         }
-            ? "\n\n操作被系统拒绝，请确认本程序正在以管理员权限运行。"
+            ? "\n\n" + I18nService.T("操作被系统拒绝，请确认本程序正在以管理员权限运行。")
             : string.Empty;
 
         AppMessageBox.Show(

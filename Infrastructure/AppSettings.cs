@@ -5,6 +5,9 @@ namespace VirtualDesktopRDP.Infrastructure;
 /// </summary>
 public sealed class AppSettings
 {
+    /// <summary>界面语言代码，例如 zh-Hans / en-US。</summary>
+    public string Language { get; set; } = "";
+
     /// <summary>
     /// 新建子会话登录成功后自动启动的程序列表，按顺序以管理员权限启动。
     /// </summary>
@@ -47,6 +50,7 @@ public sealed class AppSettings
     {
         return new AppSettings
         {
+            Language = Language,
             AutoStartPrograms = [.. AutoStartPrograms],
             TopmostEnabled = TopmostEnabled,
             SmartSizingEnabled = SmartSizingEnabled,
