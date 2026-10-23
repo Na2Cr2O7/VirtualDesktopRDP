@@ -37,6 +37,12 @@
 - 切换窗口 / Win+Tab
 - BetterGI 双实例 IPC、任务调度等业务
 
+## 防火墙
+
+BetterGI 的应用代码没有防火墙处理；它之所以通常不需要手动设置，是因为安装包配置了 `IsAllowFirewall: true`，由 MicaSetup 安装器写入应用级防火墙规则。
+
+本项目没有安装器，因此启动时会自动检查并写入一条针对当前 `VirtualDesktopRDP.exe` 的入站放行规则（所有网络配置文件）。如果失败，可以在“控制中心 → 更多 → 修复防火墙规则”中重试。
+
 ## 自动启动列表
 
 工具栏“设置”或托盘菜单“自动启动设置”可以维护 `.exe` 列表。新建 Child Session 并完成 RDP 登录后，列表中的程序会按顺序以管理员权限启动；重新连接已有会话不会重复启动。单个程序失败会被跳过，其余程序继续启动。
@@ -63,6 +69,7 @@ Services/
   ChildSessionEnvironmentCheck.cs   启动前环境检查
   ChildSessionService.cs            连接、重试、设置、自动启动、注销
   ChildSessionProcessLauncher.cs    计划任务投递
+  FirewallService.cs                应用级防火墙入站规则
 Rdp/
   RdpActiveXHost.cs                 MsRdpClient10 AxHost 封装
 ViewModels/

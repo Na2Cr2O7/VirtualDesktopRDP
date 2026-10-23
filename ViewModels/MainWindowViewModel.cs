@@ -72,6 +72,7 @@ internal sealed class MainWindowViewModel : ObservableObject
         ToggleSmallWindowCommand = new RelayCommand(ToggleSmallWindow);
         LaunchExecutableCommand = new AsyncRelayCommand(LaunchExecutableAsync);
         SendShowDesktopCommand = new RelayCommand(SendShowDesktop);
+        RepairFirewallCommand = new RelayCommand(RepairFirewall);
 
         UpdateConnectionStatus();
     }
@@ -111,6 +112,8 @@ internal sealed class MainWindowViewModel : ObservableObject
     public ICommand LaunchExecutableCommand { get; }
 
     public ICommand SendShowDesktopCommand { get; }
+
+    public ICommand RepairFirewallCommand { get; }
 
     public string StatusTitle
     {
@@ -493,6 +496,16 @@ internal sealed class MainWindowViewModel : ObservableObject
         {
             ShowError(exception);
         }
+    }
+
+    private static void RepairFirewall()
+    {
+        var success = FirewallService.EnsureInboundRule();
+        WpfMessageBox.Show(
+            FirewallService.LastMessage,
+            "防火墙规则",
+            WpfMessageBoxButton.OK,
+            success ? WpfMessageBoxImage.Information : WpfMessageBoxImage.Warning);
     }
 
     private void OnChildSessionStateChanged(object? sender, EventArgs e)
