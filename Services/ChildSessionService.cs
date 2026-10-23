@@ -182,6 +182,28 @@ internal sealed class ChildSessionService : IDisposable
         }
     }
 
+    /// <summary>
+    /// 只断开 RDP 连接，保持 Child Session 和窗口中运行的程序不变。
+    /// 之后可以再次通过 StartAsync 恢复连接。
+    /// </summary>
+    public void DisconnectRdp()
+    {
+        ThrowIfDisposed();
+        if (RdpHost.ConnectedState == 0)
+        {
+            return;
+        }
+
+        // 用户主动断开时取消尚未完成的重连/设置切换，避免断开后又被自动连上。
+        _autoStartPending = false;
+        _pendingRdpSettingChanges = RdpSettingChange.None;
+        _rdpSettingsReconnectRetriesRemaining = 0;
+        _connectionAttemptCompletionSource?.TrySetResult(false);
+
+        RdpHost.DisconnectSession();
+        RefreshState("已断开 RDP 连接，虚拟桌面会话仍在运行");
+    }
+
     /// <summary>切换 RDP 画面自适应 / 1:1。</summary>
     public void SetSmartSizing(bool enabled)
     {

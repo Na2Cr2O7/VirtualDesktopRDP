@@ -21,7 +21,7 @@ internal sealed class MainWindowViewModel : ObservableObject
     private readonly ChildSessionService _childSessionService;
 
     private string _statusTitle = "虚拟桌面尚未启动";
-    private string _statusDescription = "点击“启动并连接”，创建一个独立的 Windows 会话。";
+    private string _statusDescription = "点击“启动”，创建一个独立的 Windows 会话。";
     private string _rdpStatusText = "RDP 未连接";
     private string _childSessionStatusText = "虚拟桌面会话未创建";
     private string _statusTooltip = "虚拟桌面尚未启动";
@@ -58,9 +58,10 @@ internal sealed class MainWindowViewModel : ObservableObject
             OnSystemShortcutsReconnectCompleted;
         _childSessionService.AudioReconnectCompleted += OnAudioReconnectCompleted;
 
-        StartCommand = new AsyncRelayCommand(StartAsync, () => CanStart);
+        StartCommand = new AsyncRelayCommand(
+            ConnectOrDisconnectAsync,
+            () => CanConnectOrDisconnect);
         HideCommand = new RelayCommand(() => HideRequested?.Invoke(this, EventArgs.Empty));
-        CloseCommand = new RelayCommand(() => CloseRequested?.Invoke(this, EventArgs.Empty));
         SettingsCommand = new RelayCommand(() => SettingsRequested?.Invoke(this, EventArgs.Empty));
         ToggleWatchModeCommand = new RelayCommand(ToggleWatchMode);
         ToggleAudioMutedCommand = new RelayCommand(ToggleAudioMuted);
@@ -79,8 +80,6 @@ internal sealed class MainWindowViewModel : ObservableObject
 
     public event EventHandler? HideRequested;
 
-    public event EventHandler? CloseRequested;
-
     public event EventHandler? SettingsRequested;
 
     public event EventHandler<int>? ResizeRequested;
@@ -88,8 +87,6 @@ internal sealed class MainWindowViewModel : ObservableObject
     public ICommand StartCommand { get; }
 
     public ICommand HideCommand { get; }
-
-    public ICommand CloseCommand { get; }
 
     public ICommand SettingsCommand { get; }
 
@@ -158,7 +155,9 @@ internal sealed class MainWindowViewModel : ObservableObject
         {
             if (SetProperty(ref _isConnected, value))
             {
-                OnPropertyChanged(nameof(CanStart));
+                OnPropertyChanged(nameof(CanConnectOrDisconnect));
+                OnPropertyChanged(nameof(ConnectButtonText));
+                OnPropertyChanged(nameof(ConnectButtonTooltip));
             }
         }
     }
@@ -170,7 +169,7 @@ internal sealed class MainWindowViewModel : ObservableObject
         {
             if (SetProperty(ref _isConnecting, value))
             {
-                OnPropertyChanged(nameof(CanStart));
+                OnPropertyChanged(nameof(CanConnectOrDisconnect));
             }
         }
     }
@@ -188,7 +187,7 @@ internal sealed class MainWindowViewModel : ObservableObject
         {
             if (SetProperty(ref _isSessionClosing, value))
             {
-                OnPropertyChanged(nameof(CanStart));
+                OnPropertyChanged(nameof(CanConnectOrDisconnect));
             }
         }
     }
@@ -259,7 +258,17 @@ internal sealed class MainWindowViewModel : ObservableObject
         }
     }
 
-    public bool CanStart => !IsConnected && !IsConnecting && !IsSessionClosing;
+    /// <summary>
+    /// 连接中或关闭会话期间禁用按钮；已连接时按钮用于断开，因此仍保持可用。
+    /// </summary>
+    public bool CanConnectOrDisconnect => !IsConnecting && !IsSessionClosing;
+
+    /// <summary>未连接时显示“启动”，已连接时显示“断开”。</summary>
+    public string ConnectButtonText => IsConnected ? "断开" : "启动";
+
+    public string ConnectButtonTooltip => IsConnected
+        ? "断开 RDP 连接，虚拟桌面会话和窗口保持运行"
+        : "启动并连接 RDP";
 
     public string TopmostMenuHeader => IsTopmost ? "取消置顶" : "置顶";
 
@@ -297,6 +306,32 @@ internal sealed class MainWindowViewModel : ObservableObject
         _childSessionService.SystemShortcutsReconnectCompleted -=
             OnSystemShortcutsReconnectCompleted;
         _childSessionService.AudioReconnectCompleted -= OnAudioReconnectCompleted;
+    }
+
+    /// <summary>
+    /// 同一个按钮承担连接和断开：未连接时启动/恢复 RDP，已连接时只断开 RDP。
+    /// </summary>
+    private async Task ConnectOrDisconnectAsync()
+    {
+        if (_childSessionService.ConnectedState == 1)
+        {
+            DisconnectRdp();
+            return;
+        }
+
+        await StartAsync();
+    }
+
+    private void DisconnectRdp()
+    {
+        try
+        {
+            _childSessionService.DisconnectRdp();
+        }
+        catch (Exception exception)
+        {
+            ShowError(exception);
+        }
     }
 
     private async Task StartAsync()
@@ -597,13 +632,13 @@ internal sealed class MainWindowViewModel : ObservableObject
         {
             StatusBrush = MediaBrushes.DodgerBlue;
             StatusTitle = "虚拟桌面已启动，等待连接";
-            StatusDescription = "会话仍在运行，点击“启动并连接”可重新建立 RDP 连接。";
+            StatusDescription = "会话仍在运行，点击“启动”可重新建立 RDP 连接。";
         }
         else
         {
             StatusBrush = MediaBrushes.IndianRed;
             StatusTitle = "虚拟桌面尚未启动";
-            StatusDescription = "点击“启动并连接”，创建一个独立的 Windows 会话。";
+            StatusDescription = "点击“启动”，创建一个独立的 Windows 会话。";
         }
 
         RdpStatusText = connectedState switch
@@ -617,7 +652,9 @@ internal sealed class MainWindowViewModel : ObservableObject
             ? "虚拟桌面会话未创建"
             : $"虚拟桌面会话 {childSessionId.Value}";
 
-        OnPropertyChanged(nameof(CanStart));
+        OnPropertyChanged(nameof(CanConnectOrDisconnect));
+        OnPropertyChanged(nameof(ConnectButtonText));
+        OnPropertyChanged(nameof(ConnectButtonTooltip));
         OnPropertyChanged(nameof(TopmostMenuHeader));
         OnPropertyChanged(nameof(WatchModeMenuHeader));
         OnPropertyChanged(nameof(AudioMenuHeader));

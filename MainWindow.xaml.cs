@@ -43,7 +43,6 @@ public partial class MainWindow : Window
             new RoutedEventHandler(OnControlCenterActionClick));
 
         _viewModel.HideRequested += OnHideRequested;
-        _viewModel.CloseRequested += OnCloseRequested;
         _viewModel.SettingsRequested += OnSettingsRequested;
         _viewModel.ResizeRequested += OnResizeRequested;
 
@@ -208,11 +207,6 @@ public partial class MainWindow : Window
         _trayIcon.BalloonTipTitle = "VirtualDesktopRDP";
         _trayIcon.BalloonTipText = "虚拟桌面仍在运行，双击托盘图标可重新打开窗口。";
         _trayIcon.ShowBalloonTip(2500);
-    }
-
-    private void OnCloseRequested(object? sender, EventArgs e)
-    {
-        Close();
     }
 
     private void OnSettingsRequested(object? sender, EventArgs e)
