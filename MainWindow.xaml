@@ -23,6 +23,7 @@
             <Setter Property="BorderThickness" Value="3" />
             <Setter Property="Padding" Value="9,4" />
             <Setter Property="Margin" Value="1,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -34,7 +35,7 @@
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="0"
                                 SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Center"
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="Center"
                                               TextElement.Foreground="{TemplateBinding Foreground}" />
                         </Border>
@@ -63,6 +64,7 @@
             <Setter Property="BorderThickness" Value="3" />
             <Setter Property="Padding" Value="9,4" />
             <Setter Property="Margin" Value="1,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -74,7 +76,7 @@
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="0"
                                 SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Center"
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="Center"
                                               TextElement.Foreground="{TemplateBinding Foreground}" />
                         </Border>
@@ -92,6 +94,74 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- 控制中心 panel 内的普通菜单项 -->
+        <Style x:Key="ControlCenterItem"
+               TargetType="Button"
+               BasedOn="{StaticResource ToolbarButton}">
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Padding" Value="30,5,10,5" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+
+        <!-- 控制中心 panel 内的可勾选菜单项，带左侧对勾 -->
+        <Style x:Key="ControlCenterToggle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#FFE8E8E8" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="3" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Border"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="0"
+                                SnapsToDevicePixels="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="CheckMark"
+                                           VerticalAlignment="Center"
+                                           Foreground="#FF7FBFFF"
+                                           Text="✓"
+                                           Visibility="Collapsed" />
+                                <ContentPresenter Grid.Column="1"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="Center"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#22FFFFFF" />
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#66FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#223FA0FF" />
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#FF7FBFFF" />
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ControlCenterSection" TargetType="TextBlock">
+            <Setter Property="Margin" Value="10,10,10,4" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#99FFFFFF" />
         </Style>
 
     </Window.Resources>
@@ -130,52 +200,81 @@
                                   Style="{StaticResource ToolbarToggleButton}"  
                                   ToolTip="{Binding WatchModeMenuHeader}" />
 
-                    <Menu Background="Transparent"
-                          Foreground="#FFE8E8E8"
-                          VerticalAlignment="Center">
-                        <MenuItem Header="控制中心"
-                                  Foreground="#FFE8E8E8">
-                            <MenuItem Header="窗口" Foreground="#222222" >
-                                <MenuItem Header="自适应"
-                                          Command="{Binding UseAdaptiveCommand}"
-                                          IsCheckable="True"
-                                          IsChecked="{Binding IsAdaptive, Mode=OneWay}"  />
-                                <MenuItem Header="1 : 1"
-                                          Command="{Binding UseOneToOneCommand}"
-                                          IsCheckable="True"
-                                          IsChecked="{Binding IsOneToOne, Mode=OneWay}" />
-                                <Separator />
-                                <MenuItem Header="保持 16:9"
-                                          Command="{Binding ToggleKeepAspectRatioCommand}"
-                                          IsCheckable="True"
-                                          IsChecked="{Binding KeepAspectRatio, Mode=OneWay}" />
-                                <MenuItem Header="{Binding SmallWindowMenuHeader}"
-                                          Command="{Binding ToggleSmallWindowCommand}" />
-                                <Separator />
-                                <MenuItem Header="{Binding TopmostMenuHeader}"
-                                          Command="{Binding ToggleTopmostCommand}" />
-                            </MenuItem>
-                            <MenuItem Header="快捷键" Foreground="#222222" >
-                                <MenuItem Header="系统组合键发送到虚拟桌面"
-                                          Command="{Binding ToggleSendSystemShortcutsCommand}"
-                                          IsCheckable="True"
-                                          IsChecked="{Binding SendSystemShortcutsToRemote, Mode=OneWay}" />
-                                <Separator />
-                                <MenuItem Header="发送 Win+D 显示桌面"
-                                          Command="{Binding SendShowDesktopCommand}" />
-                            </MenuItem>
-                            <MenuItem Header="音频" Foreground="#222222" >
-                                <MenuItem Header="{Binding AudioMenuHeader}"
-                                          Command="{Binding ToggleAudioMutedCommand}" />
-                            </MenuItem>
-                            <MenuItem Header="更多" Foreground="#222222" >
-                                <MenuItem Header="以管理员权限启动…"
-                                          Command="{Binding LaunchExecutableCommand}" />
-                                <MenuItem Header="修复防火墙规则"
-                                          Command="{Binding RepairFirewallCommand}" />
-                            </MenuItem>
-                        </MenuItem>
-                    </Menu>
+                    <ToggleButton x:Name="ControlCenterButton"
+                                  Click="OnControlCenterButtonClick"
+                                  Content="控制中心"
+                                  Style="{StaticResource ToolbarToggleButton}" />
+
+                    <!-- 控制中心使用自定义 Popup，保持与主界面一致的深色直角 3px 边框。 -->
+                    <Popup x:Name="ControlCenterPopup"
+                           AllowsTransparency="True"
+                           Closed="OnControlCenterPopupClosed"
+                           Placement="Bottom"
+                           PlacementTarget="{Binding ElementName=ControlCenterButton}"
+                           PopupAnimation="Fade"
+                           StaysOpen="False"
+                           VerticalOffset="4">
+                        <Border Width="300"
+                                Background="#FF202024"
+                                BorderBrush="#FF707078"
+                                BorderThickness="3">
+                            <StackPanel x:Name="ControlCenterPanel" Margin="6">
+                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="显示" />
+                                <ToggleButton Command="{Binding UseAdaptiveCommand}"
+                                              Content="自适应"
+                                              IsChecked="{Binding IsAdaptive, Mode=OneWay}"
+                                              Style="{StaticResource ControlCenterToggle}" />
+                                <ToggleButton Command="{Binding UseOneToOneCommand}"
+                                              Content="1 : 1"
+                                              IsChecked="{Binding IsOneToOne, Mode=OneWay}"
+                                              Style="{StaticResource ControlCenterToggle}" />
+                                <ToggleButton Command="{Binding ToggleKeepAspectRatioCommand}"
+                                              Content="保持 16:9"
+                                              IsChecked="{Binding KeepAspectRatio, Mode=OneWay}"
+                                              Style="{StaticResource ControlCenterToggle}" />
+                                <Button Command="{Binding ToggleSmallWindowCommand}"
+                                        Content="{Binding SmallWindowMenuHeader}"
+                                        Style="{StaticResource ControlCenterItem}" />
+                                <Button Command="{Binding ToggleTopmostCommand}"
+                                        Content="{Binding TopmostMenuHeader}"
+                                        Style="{StaticResource ControlCenterItem}" />
+
+                                <Border Height="1"
+                                        Margin="8,6"
+                                        Background="#33FFFFFF" />
+
+                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="快捷键" />
+                                <ToggleButton Command="{Binding ToggleSendSystemShortcutsCommand}"
+                                              Content="系统组合键发送到虚拟桌面"
+                                              IsChecked="{Binding SendSystemShortcutsToRemote, Mode=OneWay}"
+                                              Style="{StaticResource ControlCenterToggle}" />
+                                <Button Command="{Binding SendShowDesktopCommand}"
+                                        Content="发送 Win+D 显示桌面"
+                                        Style="{StaticResource ControlCenterItem}" />
+
+                                <Border Height="1"
+                                        Margin="8,6"
+                                        Background="#33FFFFFF" />
+
+                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="音频" />
+                                <Button Command="{Binding ToggleAudioMutedCommand}"
+                                        Content="{Binding AudioMenuHeader}"
+                                        Style="{StaticResource ControlCenterItem}" />
+
+                                <Border Height="1"
+                                        Margin="8,6"
+                                        Background="#33FFFFFF" />
+
+                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="更多" />
+                                <Button Command="{Binding LaunchExecutableCommand}"
+                                        Content="以管理员权限启动…"
+                                        Style="{StaticResource ControlCenterItem}" />
+                                <Button Command="{Binding RepairFirewallCommand}"
+                                        Content="修复防火墙规则"
+                                        Style="{StaticResource ControlCenterItem}" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
 
                     <Button Command="{Binding SettingsCommand}"
                             Content="自动启动设置"

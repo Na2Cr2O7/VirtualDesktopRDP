@@ -38,6 +38,9 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
         RdpHostContainer.Child = _childSessionService.RdpHost;
         RdpHostContainer.IsVisibleChanged += OnRdpHostVisibilityChanged;
+        ControlCenterPanel.AddHandler(
+            System.Windows.Controls.Primitives.ButtonBase.ClickEvent,
+            new RoutedEventHandler(OnControlCenterActionClick));
 
         _viewModel.HideRequested += OnHideRequested;
         _viewModel.CloseRequested += OnCloseRequested;
@@ -171,6 +174,23 @@ public partial class MainWindow : Window
     private void OnResizeRequested(object? sender, int width)
     {
         ResizeToWidth(width);
+    }
+
+    private void OnControlCenterButtonClick(object sender, RoutedEventArgs e)
+    {
+        ControlCenterPopup.IsOpen = ControlCenterButton.IsChecked == true;
+    }
+
+    private void OnControlCenterPopupClosed(object? sender, EventArgs e)
+    {
+        ControlCenterButton.IsChecked = false;
+    }
+
+    private void OnControlCenterActionClick(object sender, RoutedEventArgs e)
+    {
+        // 任何菜单项执行后立即收起面板，避免 Popup 停留在画面上。
+        ControlCenterPopup.IsOpen = false;
+        ControlCenterButton.IsChecked = false;
     }
 
     private void OnRdpHostVisibilityChanged(object? sender, DependencyPropertyChangedEventArgs e)
