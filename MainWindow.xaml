@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
         xmlns:infra="clr-namespace:VirtualDesktopRDP.Infrastructure"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="VirtualDesktopRDP"
         Width="1280"
         Height="752"
@@ -11,8 +12,18 @@
         Background="#FF1B1B1F"
         FontFamily="Microsoft YaHei UI"
         Foreground="#FFE8E8E8"
+        ResizeMode="CanResize"
         Topmost="{Binding IsTopmost, Mode=OneWay}"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="40"
+                            CornerRadius="0"
+                            GlassFrameThickness="0"
+                            ResizeBorderThickness="6"
+                            UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+
     <Window.Resources>
         <infra:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
 
@@ -164,26 +175,115 @@
             <Setter Property="Foreground" Value="#99FFFFFF" />
         </Style>
 
+        <!-- 自定义标题栏的最小化/最大化/关闭按钮 -->
+        <Style x:Key="CaptionButton" TargetType="Button">
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="3" />
+            <Setter Property="Foreground" Value="#FFE8E8E8" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="0"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#22FFFFFF" />
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#33FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#33FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Window.Resources>
 
     <DockPanel>
-        <!-- 顶部工具栏 -->
+        <!-- 内嵌自定义标题栏：左上标题/状态，右上窗口按钮，拖动与双击最大化由 WindowChrome 处理 -->
+        <Border DockPanel.Dock="Top"
+                Height="40"
+                Background="#FF252529"
+                BorderBrush="#22FFFFFF"
+                BorderThickness="0,0,0,1">
+            <Grid Margin="12,0">
+                <StackPanel VerticalAlignment="Center"
+                            Orientation="Horizontal">
+                    <Border Width="22"
+                            Height="22"
+                            Margin="0,0,10,0"
+                            Background="#FF244A6E"
+                            BorderBrush="#FF7FBFFF"
+                            BorderThickness="3">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Foreground="#FFB9DFFF"
+                                   Text="V" />
+                    </Border>
+                    <TextBlock VerticalAlignment="Center"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Text="VirtualDesktopRDP" />
+                    <Ellipse Width="9"
+                             Height="9"
+                             Margin="12,0,0,0"
+                             VerticalAlignment="Center"
+                             Fill="{Binding StatusBrush}"
+                             ToolTip="{Binding StatusTooltip}" />
+                </StackPanel>
+
+                <StackPanel HorizontalAlignment="Right"
+                            Orientation="Horizontal">
+                    <Button x:Name="MinimizeButton"
+                            Click="OnMinimizeClick"
+                            Content="—"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Style="{StaticResource CaptionButton}"
+                            ToolTip="最小化" />
+                    <Button x:Name="MaximizeRestoreButton"
+                            Click="OnMaximizeRestoreClick"
+                            Content="□"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Style="{StaticResource CaptionButton}"
+                            ToolTip="最大化" />
+                    <Button x:Name="CloseWindowButton"
+                            Click="OnCloseWindowClick"
+                            Content="×"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Style="{StaticResource CaptionButton}"
+                            ToolTip="关闭" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 工具栏 -->
         <Border DockPanel.Dock="Top"
                 Padding="10,6"
                 Background="#FF252529"
                 BorderBrush="#22FFFFFF"
                 BorderThickness="0,0,0,1">
             <DockPanel LastChildFill="True">
-                <StackPanel DockPanel.Dock="Left"
-                            VerticalAlignment="Center"
-                            Orientation="Horizontal">
-                    <Ellipse Width="10"
-                             Height="10"
-                             Margin="6,0,10,0"
-                             Fill="{Binding StatusBrush}"
-                             ToolTip="{Binding StatusTooltip}" />
-                </StackPanel>
-
                 <WrapPanel HorizontalAlignment="Right"
                            VerticalAlignment="Center"
                            Orientation="Horizontal">

@@ -53,12 +53,48 @@ public partial class MainWindow : Window
         _lastWidth = Width;
         _lastHeight = Height;
         SizeChanged += OnWindowSizeChanged;
+        UpdateMaximizeRestoreButton();
     }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
         ApplyDarkTitleBar();
+    }
+
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        UpdateMaximizeRestoreButton();
+    }
+
+    private void OnMinimizeClick(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void OnMaximizeRestoreClick(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
+    }
+
+    private void OnCloseWindowClick(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
+    private void UpdateMaximizeRestoreButton()
+    {
+        if (MaximizeRestoreButton is null)
+        {
+            return;
+        }
+
+        var maximized = WindowState == WindowState.Maximized;
+        MaximizeRestoreButton.Content = maximized ? "❐" : "□";
+        MaximizeRestoreButton.ToolTip = maximized ? "还原" : "最大化";
     }
 
     protected override void OnClosing(CancelEventArgs e)
