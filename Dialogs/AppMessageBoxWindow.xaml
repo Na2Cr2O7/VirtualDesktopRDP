@@ -16,7 +16,7 @@
         KeyDown="OnKeyDown">
     <!-- 外层 3px 直角边框，与主窗口按钮风格一致。 -->
     <Border Background="#FF202024"
-            BorderBrush="#FF707078"
+            BorderBrush="#AA707078"
             BorderThickness="3">
         <Grid>
             <Grid.RowDefinitions>

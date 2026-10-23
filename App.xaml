@@ -30,11 +30,11 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ButtonBorder" Property="Background" Value="#FF3A3A42" />
-                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFB0B0B8" />
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#AAB0B0B8" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="ButtonBorder" Property="Background" Value="#FF45454D" />
-                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFD0D0D8" />
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#AAD0D0D8" />
                             </Trigger>
                             <Trigger Property="IsDefault" Value="True">
                                 <Setter TargetName="ButtonBorder" Property="Background" Value="#FF244A6E" />
