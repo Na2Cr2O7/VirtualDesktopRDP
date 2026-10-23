@@ -219,28 +219,18 @@
     </Window.Resources>
 
     <DockPanel>
-        <!-- 内嵌自定义标题栏：左上标题/状态，右上窗口按钮，拖动与双击最大化由 WindowChrome 处理 -->
-        <Border DockPanel.Dock="Top"
-                Height="40"
+        <!-- 内嵌自定义标题栏：标题、工具栏、窗口按钮全部放在同一顶部区域 -->
+        <Border x:Name="TitleBar"
+                DockPanel.Dock="Top"
+                MinHeight="40"
                 Background="#FF252529"
                 BorderBrush="#22FFFFFF"
                 BorderThickness="0,0,0,1">
-            <Grid Margin="12,0">
-                <StackPanel VerticalAlignment="Center"
+            <DockPanel Margin="12,0" LastChildFill="True">
+                <StackPanel DockPanel.Dock="Left"
+                            Margin="0,0,12,0"
+                            VerticalAlignment="Center"
                             Orientation="Horizontal">
-                    <Border Width="22"
-                            Height="22"
-                            Margin="0,0,10,0"
-                            Background="#FF244A6E"
-                            BorderBrush="#FF7FBFFF"
-                            BorderThickness="3">
-                        <TextBlock HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   FontSize="11"
-                                   FontWeight="Bold"
-                                   Foreground="#FFB9DFFF"
-                                   Text="V" />
-                    </Border>
                     <TextBlock VerticalAlignment="Center"
                                FontSize="13"
                                FontWeight="SemiBold"
@@ -253,7 +243,8 @@
                              ToolTip="{Binding StatusTooltip}" />
                 </StackPanel>
 
-                <StackPanel HorizontalAlignment="Right"
+                <StackPanel DockPanel.Dock="Right"
+                            VerticalAlignment="Top"
                             Orientation="Horizontal">
                     <Button x:Name="MinimizeButton"
                             Click="OnMinimizeClick"
@@ -274,35 +265,30 @@
                             Style="{StaticResource CaptionButton}"
                             ToolTip="关闭" />
                 </StackPanel>
-            </Grid>
-        </Border>
 
-        <!-- 工具栏 -->
-        <Border DockPanel.Dock="Top"
-                Padding="10,6"
-                Background="#FF252529"
-                BorderBrush="#22FFFFFF"
-                BorderThickness="0,0,0,1">
-            <DockPanel LastChildFill="True">
                 <WrapPanel HorizontalAlignment="Right"
                            VerticalAlignment="Center"
                            Orientation="Horizontal">
                     <Button Command="{Binding StartCommand}"
                             Content="启动"
                             IsEnabled="{Binding CanStart}"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Style="{StaticResource ToolbarButton}" />
                     <Button Command="{Binding HideCommand}"
                             Content="隐藏"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Style="{StaticResource ToolbarButton}" />
                     <ToggleButton Command="{Binding ToggleWatchModeCommand}"
                                   Content="观看"
                                   IsChecked="{Binding IsWatchModeEnabled, Mode=OneWay}"
-                                  Style="{StaticResource ToolbarToggleButton}"  
+                                  shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                                  Style="{StaticResource ToolbarToggleButton}"
                                   ToolTip="{Binding WatchModeMenuHeader}" />
 
                     <ToggleButton x:Name="ControlCenterButton"
                                   Click="OnControlCenterButtonClick"
                                   Content="控制中心"
+                                  shell:WindowChrome.IsHitTestVisibleInChrome="True"
                                   Style="{StaticResource ToolbarToggleButton}" />
 
                     <!-- 控制中心使用自定义 Popup，保持与主界面一致的深色直角 3px 边框。 -->
@@ -378,9 +364,11 @@
 
                     <Button Command="{Binding SettingsCommand}"
                             Content="自动启动设置"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Style="{StaticResource ToolbarButton}" />
                     <Button Command="{Binding CloseCommand}"
                             Content="关闭"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Style="{StaticResource ToolbarButton}" />
                 </WrapPanel>
             </DockPanel>

@@ -53,7 +53,26 @@ public partial class MainWindow : Window
         _lastWidth = Width;
         _lastHeight = Height;
         SizeChanged += OnWindowSizeChanged;
+        TitleBar.SizeChanged += OnTitleBarSizeChanged;
         UpdateMaximizeRestoreButton();
+    }
+
+    private void OnTitleBarSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        UpdateCaptionHeight();
+    }
+
+    /// <summary>
+    /// 窄窗口下工具栏会换行，标题栏高度随之增加；同步 WindowChrome 的拖动区域，
+    /// 让整块顶部区域都可以拖动窗口。
+    /// </summary>
+    private void UpdateCaptionHeight()
+    {
+        var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
+        if (chrome is not null)
+        {
+            chrome.CaptionHeight = Math.Max(40, TitleBar.ActualHeight);
+        }
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -138,6 +157,7 @@ public partial class MainWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         SizeChanged -= OnWindowSizeChanged;
+        TitleBar.SizeChanged -= OnTitleBarSizeChanged;
         RdpHostContainer.IsVisibleChanged -= OnRdpHostVisibilityChanged;
 
         SaveWindowPlacement();
