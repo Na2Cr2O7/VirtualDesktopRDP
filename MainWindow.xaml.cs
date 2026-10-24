@@ -39,7 +39,6 @@ public partial class MainWindow : Window
     private readonly GameMouseService _gameMouseService;
     private readonly MainWindowViewModel _viewModel;
     private readonly Forms.NotifyIcon _trayIcon;
-    private readonly DispatcherTimer _rdpHostSyncTimer;
 
     private Drawing.Icon? _trayIconImage;
     private HwndSource? _windowSource;
@@ -63,12 +62,6 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
         RdpHostContainer.Child = _childSessionService.RdpHost;
         RdpHostContainer.IsVisibleChanged += OnRdpHostVisibilityChanged;
-        RdpHostContainer.SizeChanged += OnRdpHostContainerSizeChanged;
-        _rdpHostSyncTimer = new DispatcherTimer(DispatcherPriority.Background)
-        {
-            Interval = TimeSpan.FromMilliseconds(100)
-        };
-        _rdpHostSyncTimer.Tick += OnRdpHostSyncTimerTick;
         ControlCenterPanel.AddHandler(
             System.Windows.Controls.Primitives.ButtonBase.ClickEvent,
             new RoutedEventHandler(OnControlCenterActionClick));
@@ -78,7 +71,6 @@ public partial class MainWindow : Window
         _viewModel.ResolutionRequested += OnResolutionRequested;
         _viewModel.ResizeRequested += OnResizeRequested;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
-        _childSessionService.StateChanged += OnChildSessionStateChanged;
 
         RestoreWindowPlacement();
         _trayIcon = CreateTrayIcon();
@@ -121,7 +113,6 @@ public partial class MainWindow : Window
     {
         base.OnStateChanged(e);
         UpdateMaximizeRestoreButton();
-        ScheduleRdpHostSync();
         if (WindowState == WindowState.Normal && RdpHostContainer.IsVisible)
         {
             _ = Dispatcher.BeginInvoke(
@@ -220,10 +211,6 @@ public partial class MainWindow : Window
         SizeChanged -= OnWindowSizeChanged;
         TitleBar.SizeChanged -= OnTitleBarSizeChanged;
         RdpHostContainer.IsVisibleChanged -= OnRdpHostVisibilityChanged;
-        RdpHostContainer.SizeChanged -= OnRdpHostContainerSizeChanged;
-        _childSessionService.StateChanged -= OnChildSessionStateChanged;
-        _rdpHostSyncTimer.Stop();
-        _rdpHostSyncTimer.Tick -= OnRdpHostSyncTimerTick;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         I18nService.Instance.LanguageChanged -= OnLanguageChanged;
         _windowSource?.RemoveHook(OnWindowMessage);
@@ -357,7 +344,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        // 等布局完成后再按实际可用高度校正一次内容比例，并同步 RDP 控件大小。
+        // 等布局完成后再按实际可用高度校正一次内容比例。
         _ = Dispatcher.BeginInvoke(
             new Action(() =>
             {
@@ -372,8 +359,6 @@ public partial class MainWindow : Window
                         ClampWindowAspectRatioToLimits();
                     }
                 }
-
-                ScheduleRdpHostSync();
             }),
             DispatcherPriority.Loaded);
     }
@@ -382,45 +367,6 @@ public partial class MainWindow : Window
     {
         _lastWidth = Width;
         _lastHeight = Height;
-    }
-
-    private void OnRdpHostContainerSizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        ScheduleRdpHostSync();
-    }
-
-    /// <summary>
-    /// WindowsFormsHost 内的 ActiveX 在窗口缩放后不一定会立即跟随；
-    /// 用短延时合并尺寸变化，拖拽结束后再同步，避免逐帧重排造成卡顿。
-    /// </summary>
-    private void ScheduleRdpHostSync()
-    {
-        if (!RdpHostContainer.IsVisible)
-        {
-            return;
-        }
-
-        _rdpHostSyncTimer.Stop();
-        _rdpHostSyncTimer.Start();
-    }
-
-    private void OnRdpHostSyncTimerTick(object? sender, EventArgs e)
-    {
-        _rdpHostSyncTimer.Stop();
-        if (_childSessionService.ConnectedState == 1
-            && RdpHostContainer.ActualWidth > 0
-            && RdpHostContainer.ActualHeight > 0)
-        {
-            var dpi = VisualTreeHelper.GetDpi(RdpHostContainer);
-            _childSessionService.SyncRdpHostBounds(
-                (int)Math.Round(RdpHostContainer.ActualWidth * dpi.DpiScaleX),
-                (int)Math.Round(RdpHostContainer.ActualHeight * dpi.DpiScaleY));
-        }
-    }
-
-    private void OnChildSessionStateChanged(object? sender, EventArgs e)
-    {
-        ScheduleRdpHostSync();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)

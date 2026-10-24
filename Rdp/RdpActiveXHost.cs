@@ -36,7 +36,6 @@ internal sealed class RdpActiveXHost : AxHost
     private bool _sendSystemShortcutsToRemote = true;
     private bool _audioMuted;
     private DrawingSize? _pendingReconnectDesktopSize;
-    private DrawingSize _lastSyncedSize;
     private bool _smartSizingEnabled = true;
     private bool _inputBlocked;
 
@@ -166,97 +165,9 @@ internal sealed class RdpActiveXHost : AxHost
             ?? throw new COMException("RDP ActiveX 未返回 AdvancedSettings7。");
         RunComStep("设置显示缩放", () =>
             SetComProperty(advancedSettings, "SmartSizing", enabled));
-        SyncHostBounds();
         if (ConnectedState == 1 && IsHandleCreated && !IsDisposed && !Disposing)
         {
             Invalidate(true);
-        }
-    }
-
-    /// <summary>
-    /// 让 RDP ActiveX 的窗口重新贴合 WindowsFormsHost 大小。
-    /// 只调整 Bounds，不重新挂载 Dock，避免连接期间黑屏。
-    /// </summary>
-    internal void SyncHostBounds()
-    {
-        SyncHostBounds(0, 0);
-    }
-
-    /// <summary>
-    /// 使用调用方给出的 WPF 内容区物理像素尺寸同步 ActiveX。
-    /// 完全不依赖 WinForms 父容器当前的 ClientSize。
-    /// </summary>
-    internal void SyncHostBounds(int targetWidth, int targetHeight)
-    {
-        if (!IsHandleCreated
-            || IsDisposed
-            || Disposing
-            || ConnectedState != 1
-            || Parent is not Control parent)
-        {
-            return;
-        }
-
-        var targetSize = targetWidth > 0 && targetHeight > 0
-            ? new DrawingSize(targetWidth, targetHeight)
-            : parent.ClientSize;
-        if (targetSize.Width <= 0 || targetSize.Height <= 0)
-        {
-            return;
-        }
-
-        if (Dock != DockStyle.Fill)
-        {
-            Dock = DockStyle.Fill;
-        }
-
-        // 调用方给的是 WPF 内容区物理像素尺寸；如果 WinForms 父容器仍停留在旧尺寸，
-        // 先把它拉到目标大小，否则 ActiveX 会被父容器裁切。
-        if (targetWidth > 0
-            && targetHeight > 0
-            && (parent.ClientSize.Width != targetSize.Width
-                || parent.ClientSize.Height != targetSize.Height))
-        {
-            parent.Size = targetSize;
-        }
-
-        var sizeChanged = _lastSyncedSize != targetSize;
-        if (sizeChanged)
-        {
-            _lastSyncedSize = targetSize;
-            if (Bounds.X == 0
-                && Bounds.Y == 0
-                && Bounds.Width == targetSize.Width
-                && Bounds.Height == targetSize.Height)
-            {
-                // WindowsFormsHost 已经把 Bounds 改对，但 RDP 的渲染表面可能还停留在旧尺寸。
-                // 用 1px 的临时改变强制 ActiveX 收到一次真实的尺寸变化。
-                SetBounds(0, 0, Math.Max(1, targetSize.Width - 1), targetSize.Height);
-            }
-
-            SetBounds(0, 0, targetSize.Width, targetSize.Height);
-            ReapplySmartSizing();
-            parent.PerformLayout();
-        }
-
-        Invalidate(true);
-    }
-
-    private void ReapplySmartSizing()
-    {
-        try
-        {
-            var advancedSettings = GetComProperty(GetRequiredOcx(), "AdvancedSettings7");
-            if (advancedSettings is not null)
-            {
-                SetComProperty(advancedSettings, "SmartSizing", _smartSizingEnabled);
-            }
-        }
-        catch (Exception exception) when (exception is COMException
-                                              or TargetInvocationException
-                                              or InvalidOperationException)
-        {
-            // 重设缩放属性失败不应影响窗口缩放主流程。
         }
     }
 
@@ -456,7 +367,6 @@ internal sealed class RdpActiveXHost : AxHost
         _connectionAttemptInProgress = false;
         _connectionFailureReported = false;
         _lastConnectionDiagnostic = null;
-        _lastSyncedSize = DrawingSize.Empty;
 
         LoginCompleted?.Invoke(this, EventArgs.Empty);
     }
