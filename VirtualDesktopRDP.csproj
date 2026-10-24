@@ -16,7 +16,9 @@
 
   <ItemGroup>
     <Content Include="VDRDP.ico" />
-    <Content Include="I18n\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="I18n\*.json"
+             CopyToOutputDirectory="Always"
+             CopyToPublishDirectory="Always" />
   </ItemGroup>
 
 </Project>
