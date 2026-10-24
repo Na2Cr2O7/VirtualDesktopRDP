@@ -19,6 +19,7 @@ namespace VirtualDesktopRDP;
 public partial class MainWindow : Window
 {
     private const int DwmUseImmersiveDarkMode = 20;
+    private const int WmGetMinMaxInfo = 0x0024;
     private const int WmSizing = 0x0214;
     private const int WmszLeft = 1;
     private const int WmszRight = 2;
@@ -456,6 +457,12 @@ public partial class MainWindow : Window
         IntPtr lParam,
         ref bool handled)
     {
+        if (message == WmGetMinMaxInfo)
+        {
+            ApplyMaximizedWorkArea(hwnd, lParam);
+            return IntPtr.Zero;
+        }
+
         if (_adjustingAspectRatio
             || message != WmSizing
             || WindowState != WindowState.Normal
@@ -592,6 +599,66 @@ public partial class MainWindow : Window
         }
 
         return changed;
+    }
+
+    /// <summary>
+    /// 自定义窗口无边框最大化时，Windows 默认会覆盖整个显示器；
+    /// 这里把最大化区域限制到当前显示器的工作区，避免底部被任务栏遮挡。
+    /// </summary>
+    private static void ApplyMaximizedWorkArea(IntPtr hwnd, IntPtr lParam)
+    {
+        if (lParam == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var monitor = MonitorFromWindow(hwnd, 2);
+        if (monitor == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var monitorInfo = new MonitorInfo
+        {
+            Size = Marshal.SizeOf<MonitorInfo>()
+        };
+        if (!GetMonitorInfo(monitor, ref monitorInfo))
+        {
+            return;
+        }
+
+        var minMaxInfo = Marshal.PtrToStructure<MinMaxInfo>(lParam);
+        minMaxInfo.MaxPosition.X = monitorInfo.Work.Left - monitorInfo.Monitor.Left;
+        minMaxInfo.MaxPosition.Y = monitorInfo.Work.Top - monitorInfo.Monitor.Top;
+        minMaxInfo.MaxSize.X = monitorInfo.Work.Right - monitorInfo.Work.Left;
+        minMaxInfo.MaxSize.Y = monitorInfo.Work.Bottom - monitorInfo.Work.Top;
+        Marshal.StructureToPtr(minMaxInfo, lParam, false);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MinMaxInfo
+    {
+        public NativePoint Reserved;
+        public NativePoint MaxSize;
+        public NativePoint MaxPosition;
+        public NativePoint MinTrackSize;
+        public NativePoint MaxTrackSize;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MonitorInfo
+    {
+        public int Size;
+        public NativeRect Monitor;
+        public NativeRect Work;
+        public uint Flags;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -775,4 +842,13 @@ public partial class MainWindow : Window
         int attribute,
         ref int value,
         int size);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(
+        IntPtr monitor,
+        ref MonitorInfo monitorInfo);
 }
