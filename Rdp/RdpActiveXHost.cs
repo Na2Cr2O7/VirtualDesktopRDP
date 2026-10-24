@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // 源自 BetterGI 的桌面分身实现，已针对本项目裁剪。
 
+using System.Drawing;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -83,6 +84,9 @@ internal sealed class RdpActiveXHost : AxHost
         SetComProperty(client, "Server", "localhost");
         SetComProperty(client, "DesktopWidth", width);
         SetComProperty(client, "DesktopHeight", height);
+        // 设置 DesktopWidth/Height 时 ActiveX 可能立即把自己的窗口改成新分辨率，
+        // 这里先恢复一次，登录完成后再恢复一次，避免画面缩在左上角。
+        RestoreHostBounds();
         SetComProperty(client, "ColorDepth", 32);
         SetComProperty(client, "ConnectingText", "正在创建虚拟桌面...");
         SetComProperty(client, "DisconnectedText", "虚拟桌面已断开");
@@ -362,7 +366,46 @@ internal sealed class RdpActiveXHost : AxHost
         _connectionAttemptInProgress = false;
         _connectionFailureReported = false;
         _lastConnectionDiagnostic = null;
+
+        // 修改 DesktopWidth/DesktopHeight 后，RDP ActiveX 可能把自己的窗口尺寸
+        // 改成新桌面分辨率；Dock=Fill 不会在这种情况下自动重新布局，导致画面停在左上角。
+        RestoreHostBounds();
+        if (IsHandleCreated && !IsDisposed && !Disposing)
+        {
+            BeginInvoke(new Action(RestoreHostBounds));
+        }
+
         LoginCompleted?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void RestoreHostBounds()
+    {
+        if (!IsHandleCreated || IsDisposed || Disposing || Parent is not Control parent)
+        {
+            return;
+        }
+
+        var clientSize = parent.ClientSize;
+        if (clientSize.Width <= 0 || clientSize.Height <= 0)
+        {
+            return;
+        }
+
+        if (Dock == DockStyle.Fill
+            && Bounds.X == 0
+            && Bounds.Y == 0
+            && Bounds.Width == clientSize.Width
+            && Bounds.Height == clientSize.Height)
+        {
+            return;
+        }
+
+        // 先取消 Dock 再设置 Bounds，最后恢复 Fill，强制 WinForms 重新布局。
+        Dock = DockStyle.None;
+        Bounds = new Rectangle(0, 0, clientSize.Width, clientSize.Height);
+        Dock = DockStyle.Fill;
+        parent.PerformLayout();
+        Invalidate(true);
     }
 
     private void OnDisconnected(int disconnectReason)
