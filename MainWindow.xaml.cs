@@ -29,6 +29,10 @@ public partial class MainWindow : Window
     private const int WmszBottomLeft = 7;
     private const int WmszBottomRight = 8;
 
+    // 自适应模式下仍限制窗口内容区的极端宽高比，避免 RDP ActiveX 在超宽/超高窗口中出现绘制异常。
+    private const double MinContentAspectRatio = 4d / 3d;
+    private const double MaxContentAspectRatio = 21d / 9d;
+
     private readonly SettingsService _settingsService;
     private readonly ChildSessionService _childSessionService;
     private readonly GameMouseService _gameMouseService;
@@ -108,6 +112,22 @@ public partial class MainWindow : Window
     {
         base.OnStateChanged(e);
         UpdateMaximizeRestoreButton();
+        if (WindowState == WindowState.Normal && RdpHostContainer.IsVisible)
+        {
+            _ = Dispatcher.BeginInvoke(
+                new Action(() =>
+                {
+                    if (_viewModel.KeepAspectRatio)
+                    {
+                        ResizeToWidth(Width);
+                    }
+                    else
+                    {
+                        ClampWindowAspectRatioToLimits();
+                    }
+                }),
+                DispatcherPriority.Loaded);
+        }
     }
 
     private void OnMinimizeClick(object sender, RoutedEventArgs e)
@@ -327,9 +347,16 @@ public partial class MainWindow : Window
         _ = Dispatcher.BeginInvoke(
             new Action(() =>
             {
-                if (_viewModel.KeepAspectRatio && WindowState == WindowState.Normal)
+                if (WindowState == WindowState.Normal)
                 {
-                    ResizeToWidth(Width);
+                    if (_viewModel.KeepAspectRatio)
+                    {
+                        ResizeToWidth(Width);
+                    }
+                    else
+                    {
+                        ClampWindowAspectRatioToLimits();
+                    }
                 }
             }),
             DispatcherPriority.Loaded);
@@ -344,10 +371,16 @@ public partial class MainWindow : Window
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MainWindowViewModel.KeepAspectRatio)
-            && _viewModel.KeepAspectRatio
             && WindowState == WindowState.Normal)
         {
-            ResizeToWidth(Width);
+            if (_viewModel.KeepAspectRatio)
+            {
+                ResizeToWidth(Width);
+            }
+            else
+            {
+                ClampWindowAspectRatioToLimits();
+            }
         }
     }
 
@@ -377,6 +410,45 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// 自适应模式不强制 16:9，但把窗口内容区的宽高比限制在合理范围内，
+    /// 避免 RDP ActiveX 在极端宽高比下出现黑边和绘制残影。
+    /// </summary>
+    private void ClampWindowAspectRatioToLimits()
+    {
+        if (WindowState != WindowState.Normal
+            || !RdpHostContainer.IsVisible
+            || RdpHostContainer.ActualHeight <= 0)
+        {
+            return;
+        }
+
+        var chromeWidth = Math.Max(0, ActualWidth - RdpHostContainer.ActualWidth);
+        var chromeHeight = Math.Max(0, ActualHeight - RdpHostContainer.ActualHeight);
+        var contentWidth = Math.Max(1, ActualWidth - chromeWidth);
+        var contentHeight = Math.Max(1, ActualHeight - chromeHeight);
+        var requestedAspectRatio = contentWidth / contentHeight;
+
+        _adjustingAspectRatio = true;
+        try
+        {
+            if (requestedAspectRatio > MaxContentAspectRatio)
+            {
+                Height = Math.Max(MinHeight, contentWidth / MaxContentAspectRatio + chromeHeight);
+            }
+            else if (requestedAspectRatio < MinContentAspectRatio)
+            {
+                Width = Math.Max(MinWidth, contentHeight * MinContentAspectRatio + chromeWidth);
+            }
+        }
+        finally
+        {
+            _adjustingAspectRatio = false;
+            _lastWidth = Width;
+            _lastHeight = Height;
+        }
+    }
+
     private IntPtr OnWindowMessage(
         IntPtr hwnd,
         int message,
@@ -386,7 +458,6 @@ public partial class MainWindow : Window
     {
         if (_adjustingAspectRatio
             || message != WmSizing
-            || !_viewModel.KeepAspectRatio
             || WindowState != WindowState.Normal
             || !RdpHostContainer.IsVisible)
         {
@@ -424,32 +495,56 @@ public partial class MainWindow : Window
         var minWidth = Math.Max(1, MinWidth * scaleX);
         var minHeight = Math.Max(1, MinHeight * scaleY);
 
+        var contentWidth = Math.Max(1d, width - chromeWidth);
+        var contentHeight = Math.Max(1d, height - chromeHeight);
+        var requestedAspectRatio = contentWidth / contentHeight;
+        var exactAspectRatio = _viewModel.KeepAspectRatio;
+
+        double targetAspectRatio;
+        if (exactAspectRatio)
+        {
+            targetAspectRatio = 16d / 9d;
+        }
+        else if (requestedAspectRatio > MaxContentAspectRatio)
+        {
+            targetAspectRatio = MaxContentAspectRatio;
+        }
+        else if (requestedAspectRatio < MinContentAspectRatio)
+        {
+            targetAspectRatio = MinContentAspectRatio;
+        }
+        else
+        {
+            return false;
+        }
+
         var oldWidth = Math.Max(1, _lastWidth * scaleX);
         var oldHeight = Math.Max(1, _lastHeight * scaleY);
         var widthDelta = Math.Abs(width - oldWidth);
         var heightDelta = Math.Abs(height - oldHeight);
-        var widthDriven = edge is WmszLeft or WmszRight
-                          || (edge is not (WmszTop or WmszBottom)
-                              && widthDelta >= heightDelta);
+        var widthDriven = exactAspectRatio
+            ? edge is WmszLeft or WmszRight
+              || (edge is not (WmszTop or WmszBottom) && widthDelta >= heightDelta)
+            : requestedAspectRatio > MaxContentAspectRatio;
 
         var targetWidth = (double)width;
         var targetHeight = (double)height;
         if (widthDriven)
         {
-            targetHeight = (targetWidth - chromeWidth) * 9d / 16d + chromeHeight;
+            targetHeight = (targetWidth - chromeWidth) / targetAspectRatio + chromeHeight;
             if (targetHeight < minHeight)
             {
                 targetHeight = minHeight;
-                targetWidth = (targetHeight - chromeHeight) * 16d / 9d + chromeWidth;
+                targetWidth = (targetHeight - chromeHeight) * targetAspectRatio + chromeWidth;
             }
         }
         else
         {
-            targetWidth = (targetHeight - chromeHeight) * 16d / 9d + chromeWidth;
+            targetWidth = (targetHeight - chromeHeight) * targetAspectRatio + chromeWidth;
             if (targetWidth < minWidth)
             {
                 targetWidth = minWidth;
-                targetHeight = (targetWidth - chromeWidth) * 9d / 16d + chromeHeight;
+                targetHeight = (targetWidth - chromeWidth) / targetAspectRatio + chromeHeight;
             }
         }
 
