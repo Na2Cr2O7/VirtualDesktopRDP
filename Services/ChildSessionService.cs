@@ -264,6 +264,13 @@ internal sealed class ChildSessionService : IDisposable
         return ReconnectForRdpSettingChange(RdpSettingChange.Resolution, message);
     }
 
+    /// <summary>让 RDP 控件窗口重新贴合 WindowsFormsHost 大小。</summary>
+    public void SyncRdpHostBounds()
+    {
+        ThrowIfDisposed();
+        RdpHost.SyncHostBounds();
+    }
+
     /// <summary>切换 RDP 画面自适应 / 1:1。</summary>
     public void SetSmartSizing(bool enabled)
     {

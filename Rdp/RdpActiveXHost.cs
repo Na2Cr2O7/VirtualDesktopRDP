@@ -165,10 +165,50 @@ internal sealed class RdpActiveXHost : AxHost
             ?? throw new COMException("RDP ActiveX 未返回 AdvancedSettings7。");
         RunComStep("设置显示缩放", () =>
             SetComProperty(advancedSettings, "SmartSizing", enabled));
+        SyncHostBounds();
         if (ConnectedState == 1 && IsHandleCreated && !IsDisposed && !Disposing)
         {
             Invalidate(true);
         }
+    }
+
+    /// <summary>
+    /// 让 RDP ActiveX 的窗口重新贴合 WindowsFormsHost 大小。
+    /// 只调整 Bounds，不重新挂载 Dock，避免连接期间黑屏。
+    /// </summary>
+    internal void SyncHostBounds()
+    {
+        if (!IsHandleCreated
+            || IsDisposed
+            || Disposing
+            || ConnectedState != 1
+            || Parent is not Control parent)
+        {
+            return;
+        }
+
+        var targetSize = parent.ClientSize;
+        if (targetSize.Width <= 0 || targetSize.Height <= 0)
+        {
+            return;
+        }
+
+        if (Dock != DockStyle.Fill)
+        {
+            Dock = DockStyle.Fill;
+        }
+
+        if (Bounds.X == 0
+            && Bounds.Y == 0
+            && Bounds.Width == targetSize.Width
+            && Bounds.Height == targetSize.Height)
+        {
+            return;
+        }
+
+        SetBounds(0, 0, targetSize.Width, targetSize.Height);
+        parent.PerformLayout();
+        Invalidate(true);
     }
 
     /// <summary>设置系统组合键发送位置；下次连接时生效。</summary>
