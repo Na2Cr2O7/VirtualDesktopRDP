@@ -19,6 +19,8 @@ namespace VirtualDesktopRDP;
 public partial class MainWindow : Window
 {
     private const int DwmUseImmersiveDarkMode = 20;
+    private const int WmEnterSizeMove = 0x0231;
+    private const int WmExitSizeMove = 0x0232;
     private const int WmSizing = 0x0214;
     private const int WmszLeft = 1;
     private const int WmszRight = 2;
@@ -40,6 +42,7 @@ public partial class MainWindow : Window
     private bool _allowClose;
     private bool _closeInProgress;
     private bool _adjustingAspectRatio;
+    private bool _isUserResizing;
     private bool _rdpBoundsRefreshScheduled;
     private double _lastWidth;
     private double _lastHeight;
@@ -58,7 +61,6 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
         RdpHostContainer.Child = _childSessionService.RdpHost;
         RdpHostContainer.IsVisibleChanged += OnRdpHostVisibilityChanged;
-        RdpHostContainer.SizeChanged += OnRdpHostContainerSizeChanged;
         ControlCenterPanel.AddHandler(
             System.Windows.Controls.Primitives.ButtonBase.ClickEvent,
             new RoutedEventHandler(OnControlCenterActionClick));
@@ -110,6 +112,10 @@ public partial class MainWindow : Window
     {
         base.OnStateChanged(e);
         UpdateMaximizeRestoreButton();
+        if (WindowState is WindowState.Normal or WindowState.Maximized)
+        {
+            ScheduleRdpBoundsRefresh();
+        }
     }
 
     private void OnMinimizeClick(object sender, RoutedEventArgs e)
@@ -192,7 +198,6 @@ public partial class MainWindow : Window
         SizeChanged -= OnWindowSizeChanged;
         TitleBar.SizeChanged -= OnTitleBarSizeChanged;
         RdpHostContainer.IsVisibleChanged -= OnRdpHostVisibilityChanged;
-        RdpHostContainer.SizeChanged -= OnRdpHostContainerSizeChanged;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         I18nService.Instance.LanguageChanged -= OnLanguageChanged;
         _windowSource?.RemoveHook(OnWindowMessage);
@@ -342,12 +347,6 @@ public partial class MainWindow : Window
     {
         _lastWidth = Width;
         _lastHeight = Height;
-        ScheduleRdpBoundsRefresh();
-    }
-
-    private void OnRdpHostContainerSizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        ScheduleRdpBoundsRefresh();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -366,7 +365,7 @@ public partial class MainWindow : Window
     /// </summary>
     private void ScheduleRdpBoundsRefresh()
     {
-        if (_rdpBoundsRefreshScheduled || !RdpHostContainer.IsVisible)
+        if (_isUserResizing || _rdpBoundsRefreshScheduled || !RdpHostContainer.IsVisible)
         {
             return;
         }
@@ -414,6 +413,19 @@ public partial class MainWindow : Window
         IntPtr lParam,
         ref bool handled)
     {
+        if (message == WmEnterSizeMove)
+        {
+            _isUserResizing = true;
+            return IntPtr.Zero;
+        }
+
+        if (message == WmExitSizeMove)
+        {
+            _isUserResizing = false;
+            ScheduleRdpBoundsRefresh();
+            return IntPtr.Zero;
+        }
+
         if (_adjustingAspectRatio
             || message != WmSizing
             || !_viewModel.KeepAspectRatio

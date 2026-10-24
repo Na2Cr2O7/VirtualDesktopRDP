@@ -36,6 +36,7 @@ internal sealed class RdpActiveXHost : AxHost
     private bool _sendSystemShortcutsToRemote = true;
     private bool _audioMuted;
     private DrawingSize? _pendingReconnectDesktopSize;
+    private bool _syncBoundsAfterReconnect;
     private bool _smartSizingEnabled = true;
     private bool _inputBlocked;
 
@@ -84,9 +85,6 @@ internal sealed class RdpActiveXHost : AxHost
         SetComProperty(client, "Server", "localhost");
         SetComProperty(client, "DesktopWidth", width);
         SetComProperty(client, "DesktopHeight", height);
-        // 设置 DesktopWidth/Height 时 ActiveX 可能立即把自己的窗口改成新分辨率，
-        // 这里先恢复一次，登录完成后再恢复一次，避免画面缩在左上角。
-        RestoreHostBounds();
         SetComProperty(client, "ColorDepth", 32);
         SetComProperty(client, "ConnectingText", "正在创建虚拟桌面...");
         SetComProperty(client, "DisconnectedText", "虚拟桌面已断开");
@@ -169,19 +167,47 @@ internal sealed class RdpActiveXHost : AxHost
         RunComStep("设置显示缩放", () =>
             SetComProperty(advancedSettings, "SmartSizing", enabled));
         RefreshDisplayBounds();
-        if (IsHandleCreated && !IsDisposed && !Disposing)
+        if (ConnectedState == 1 && IsHandleCreated && !IsDisposed && !Disposing)
         {
             Invalidate(true);
         }
     }
 
-    /// <summary>强制 RDP 控件重新贴合 WinFormsHost 的当前大小并重绘。</summary>
+    /// <summary>让 RDP 控件重新贴合 WinFormsHost 当前大小并重绘。</summary>
     internal void RefreshDisplayBounds()
     {
-        if (RestoreHostBounds() && IsHandleCreated && !IsDisposed && !Disposing)
+        if (!IsHandleCreated
+            || IsDisposed
+            || Disposing
+            || ConnectedState != 1
+            || Parent is not Control parent)
         {
-            Invalidate(true);
+            return;
         }
+
+        var clientSize = parent.ClientSize;
+        if (clientSize.Width <= 0 || clientSize.Height <= 0)
+        {
+            return;
+        }
+
+        if (Dock != DockStyle.Fill)
+        {
+            Dock = DockStyle.Fill;
+        }
+
+        if (Bounds.X == 0
+            && Bounds.Y == 0
+            && Bounds.Width == clientSize.Width
+            && Bounds.Height == clientSize.Height)
+        {
+            return;
+        }
+
+        // 不修改 Dock，避免 RDP ActiveX 在连接期间因重新挂载而黑屏。
+        SetBounds(0, 0, clientSize.Width, clientSize.Height);
+        parent.PerformLayout();
+        Invalidate(true);
     }
 
     /// <summary>设置系统组合键发送位置；下次连接时生效。</summary>
@@ -234,6 +260,7 @@ internal sealed class RdpActiveXHost : AxHost
         }
 
         _pendingReconnectDesktopSize = desktopSize;
+        _syncBoundsAfterReconnect = true;
         try
         {
             if (!DisconnectCore())
@@ -253,6 +280,7 @@ internal sealed class RdpActiveXHost : AxHost
     internal void DisconnectSession()
     {
         _pendingReconnectDesktopSize = null;
+        _syncBoundsAfterReconnect = false;
         _ = DisconnectCore();
     }
 
@@ -381,45 +409,16 @@ internal sealed class RdpActiveXHost : AxHost
         _connectionFailureReported = false;
         _lastConnectionDiagnostic = null;
 
-        // 修改 DesktopWidth/DesktopHeight 后，RDP ActiveX 可能把自己的窗口尺寸
-        // 改成新桌面分辨率；Dock=Fill 不会在这种情况下自动重新布局，导致画面停在左上角。
-        RestoreHostBounds();
-        if (IsHandleCreated && !IsDisposed && !Disposing)
+        // 分辨率变更后的重连会改变 ActiveX 自身窗口尺寸；
+        // 只在重连场景恢复一次，初始连接不改动 ActiveX 布局，避免黑屏。
+        var syncAfterReconnect = _syncBoundsAfterReconnect;
+        _syncBoundsAfterReconnect = false;
+        if (syncAfterReconnect && IsHandleCreated && !IsDisposed && !Disposing)
         {
-            BeginInvoke(new Action(() => RestoreHostBounds()));
+            BeginInvoke(new Action(RefreshDisplayBounds));
         }
 
         LoginCompleted?.Invoke(this, EventArgs.Empty);
-    }
-
-    private bool RestoreHostBounds()
-    {
-        if (!IsHandleCreated || IsDisposed || Disposing || Parent is not Control parent)
-        {
-            return false;
-        }
-
-        var clientSize = parent.ClientSize;
-        if (clientSize.Width <= 0 || clientSize.Height <= 0)
-        {
-            return false;
-        }
-
-        if (Dock == DockStyle.Fill
-            && Bounds.X == 0
-            && Bounds.Y == 0
-            && Bounds.Width == clientSize.Width
-            && Bounds.Height == clientSize.Height)
-        {
-            return false;
-        }
-
-        // 先取消 Dock 再设置 Bounds，最后恢复 Fill，强制 WinForms 重新布局。
-        Dock = DockStyle.None;
-        Bounds = new Rectangle(0, 0, clientSize.Width, clientSize.Height);
-        Dock = DockStyle.Fill;
-        parent.PerformLayout();
-        return true;
     }
 
     private void OnDisconnected(int disconnectReason)
