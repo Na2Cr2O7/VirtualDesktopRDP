@@ -126,6 +126,8 @@ RDP 的登录凭据由 Windows 的 RDP ActiveX 登录流程处理，本程序不
 
 本项目从 [BetterGI（better-genshin-impact）](https://github.com/babalae/better-genshin-impact) 的“桌面分身”实现中提取并改写，主要沿用其 Child Session 原生调用、RDP ActiveX 封装、环境检查、进程投递和会话生命周期逻辑。
 
-本项目在 **GNU General Public License v3.0（GPLv3）** 下开源
+本项目在 ![](https://camo.githubusercontent.com/9a7ffd111ccebe8def4a319a2f8b8892c71ec96874fe609d9e201ffe94df9faf/68747470733a2f2f7777772e676e752e6f72672f67726170686963732f67706c76332d3132377835312e706e67) 下开源
+
+
 
 [协议](LICENSE.txt)
