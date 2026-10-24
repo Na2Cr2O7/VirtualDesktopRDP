@@ -762,6 +762,8 @@ internal sealed class ChildSessionService : IDisposable
         finally
         {
             _rdpSettingsReconnectRetryInProgress = false;
+            RefreshState(I18nService.F(
+               ""));
         }
 
         if (retryFailure is not null)

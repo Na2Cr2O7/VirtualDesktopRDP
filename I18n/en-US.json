@@ -43,7 +43,7 @@
   "常用分辨率": "Common resolutions",
   "宽": "Width",
   "高": "Height",
-  "最低 800×600；超过 2560×1440 会提示确认；最大 8192×8192。": "Minimum 800×600. Resolutions above 2560×1440 require confirmation. Maximum 8192×8192.",
+  "最低 800×600；最大 8192×8192。": "Minimum 800×600. Maximum 8192×8192.",
   "分辨率不得低于 800×600。": "Resolution must not be lower than 800×600.",
   "分辨率不能超过 8192×8192。": "Resolution must not exceed 8192×8192.",
   "请输入有效的宽度和高度。": "Enter a valid width and height.",

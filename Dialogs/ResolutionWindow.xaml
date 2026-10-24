@@ -110,7 +110,7 @@
                 <TextBlock Margin="0,16,0,0"
                            FontSize="11"
                            Foreground="#80FFFFFF"
-                           Text="{i18n:T 最低 800×600；超过 2560×1440 会提示确认；最大 8192×8192。}"
+                           Text="{i18n:T 最低 800×600；最大 8192×8192。}"
                            TextWrapping="Wrap" />
             </StackPanel>
 
