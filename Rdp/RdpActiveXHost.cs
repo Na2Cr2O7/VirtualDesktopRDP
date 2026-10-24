@@ -36,7 +36,6 @@ internal sealed class RdpActiveXHost : AxHost
     private bool _sendSystemShortcutsToRemote = true;
     private bool _audioMuted;
     private DrawingSize? _pendingReconnectDesktopSize;
-    private bool _syncBoundsAfterReconnect;
     private bool _smartSizingEnabled = true;
     private bool _inputBlocked;
 
@@ -166,48 +165,10 @@ internal sealed class RdpActiveXHost : AxHost
             ?? throw new COMException("RDP ActiveX 未返回 AdvancedSettings7。");
         RunComStep("设置显示缩放", () =>
             SetComProperty(advancedSettings, "SmartSizing", enabled));
-        RefreshDisplayBounds();
         if (ConnectedState == 1 && IsHandleCreated && !IsDisposed && !Disposing)
         {
             Invalidate(true);
         }
-    }
-
-    /// <summary>让 RDP 控件重新贴合 WinFormsHost 当前大小并重绘。</summary>
-    internal void RefreshDisplayBounds()
-    {
-        if (!IsHandleCreated
-            || IsDisposed
-            || Disposing
-            || ConnectedState != 1
-            || Parent is not Control parent)
-        {
-            return;
-        }
-
-        var clientSize = parent.ClientSize;
-        if (clientSize.Width <= 0 || clientSize.Height <= 0)
-        {
-            return;
-        }
-
-        if (Dock != DockStyle.Fill)
-        {
-            Dock = DockStyle.Fill;
-        }
-
-        if (Bounds.X == 0
-            && Bounds.Y == 0
-            && Bounds.Width == clientSize.Width
-            && Bounds.Height == clientSize.Height)
-        {
-            return;
-        }
-
-        // 不修改 Dock，避免 RDP ActiveX 在连接期间因重新挂载而黑屏。
-        SetBounds(0, 0, clientSize.Width, clientSize.Height);
-        parent.PerformLayout();
-        Invalidate(true);
     }
 
     /// <summary>设置系统组合键发送位置；下次连接时生效。</summary>
@@ -260,7 +221,6 @@ internal sealed class RdpActiveXHost : AxHost
         }
 
         _pendingReconnectDesktopSize = desktopSize;
-        _syncBoundsAfterReconnect = true;
         try
         {
             if (!DisconnectCore())
@@ -280,7 +240,6 @@ internal sealed class RdpActiveXHost : AxHost
     internal void DisconnectSession()
     {
         _pendingReconnectDesktopSize = null;
-        _syncBoundsAfterReconnect = false;
         _ = DisconnectCore();
     }
 
@@ -408,15 +367,6 @@ internal sealed class RdpActiveXHost : AxHost
         _connectionAttemptInProgress = false;
         _connectionFailureReported = false;
         _lastConnectionDiagnostic = null;
-
-        // 分辨率变更后的重连会改变 ActiveX 自身窗口尺寸；
-        // 只在重连场景恢复一次，初始连接不改动 ActiveX 布局，避免黑屏。
-        var syncAfterReconnect = _syncBoundsAfterReconnect;
-        _syncBoundsAfterReconnect = false;
-        if (syncAfterReconnect && IsHandleCreated && !IsDisposed && !Disposing)
-        {
-            BeginInvoke(new Action(RefreshDisplayBounds));
-        }
 
         LoginCompleted?.Invoke(this, EventArgs.Empty);
     }

@@ -19,8 +19,6 @@ namespace VirtualDesktopRDP;
 public partial class MainWindow : Window
 {
     private const int DwmUseImmersiveDarkMode = 20;
-    private const int WmEnterSizeMove = 0x0231;
-    private const int WmExitSizeMove = 0x0232;
     private const int WmSizing = 0x0214;
     private const int WmszLeft = 1;
     private const int WmszRight = 2;
@@ -42,8 +40,6 @@ public partial class MainWindow : Window
     private bool _allowClose;
     private bool _closeInProgress;
     private bool _adjustingAspectRatio;
-    private bool _isUserResizing;
-    private bool _rdpBoundsRefreshScheduled;
     private double _lastWidth;
     private double _lastHeight;
     private bool _trayHintShown;
@@ -112,10 +108,6 @@ public partial class MainWindow : Window
     {
         base.OnStateChanged(e);
         UpdateMaximizeRestoreButton();
-        if (WindowState is WindowState.Normal or WindowState.Maximized)
-        {
-            ScheduleRdpBoundsRefresh();
-        }
     }
 
     private void OnMinimizeClick(object sender, RoutedEventArgs e)
@@ -359,27 +351,6 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// WindowsFormsHost 里的 RDP ActiveX 在窗口缩放后偶尔不会跟着改变尺寸，
-    /// 这里在 WPF 布局完成后强制同步一次。
-    /// </summary>
-    private void ScheduleRdpBoundsRefresh()
-    {
-        if (_isUserResizing || _rdpBoundsRefreshScheduled || !RdpHostContainer.IsVisible)
-        {
-            return;
-        }
-
-        _rdpBoundsRefreshScheduled = true;
-        _ = Dispatcher.BeginInvoke(
-            new Action(() =>
-            {
-                _rdpBoundsRefreshScheduled = false;
-                _childSessionService.RefreshRdpDisplayBounds();
-            }),
-            DispatcherPriority.Loaded);
-    }
-
     private void ResizeToWidth(double width)
     {
         var chromeHeight = RdpHostContainer.IsVisible && RdpHostContainer.ActualHeight > 0
@@ -413,19 +384,6 @@ public partial class MainWindow : Window
         IntPtr lParam,
         ref bool handled)
     {
-        if (message == WmEnterSizeMove)
-        {
-            _isUserResizing = true;
-            return IntPtr.Zero;
-        }
-
-        if (message == WmExitSizeMove)
-        {
-            _isUserResizing = false;
-            ScheduleRdpBoundsRefresh();
-            return IntPtr.Zero;
-        }
-
         if (_adjustingAspectRatio
             || message != WmSizing
             || !_viewModel.KeepAspectRatio
