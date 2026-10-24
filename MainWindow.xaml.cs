@@ -1,7 +1,9 @@
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using VirtualDesktopRDP.Dialogs;
 using VirtualDesktopRDP.GameMouse;
@@ -17,6 +19,15 @@ namespace VirtualDesktopRDP;
 public partial class MainWindow : Window
 {
     private const int DwmUseImmersiveDarkMode = 20;
+    private const int WmSizing = 0x0214;
+    private const int WmszLeft = 1;
+    private const int WmszRight = 2;
+    private const int WmszTop = 3;
+    private const int WmszTopLeft = 4;
+    private const int WmszTopRight = 5;
+    private const int WmszBottom = 6;
+    private const int WmszBottomLeft = 7;
+    private const int WmszBottomRight = 8;
 
     private readonly SettingsService _settingsService;
     private readonly ChildSessionService _childSessionService;
@@ -24,9 +35,12 @@ public partial class MainWindow : Window
     private readonly MainWindowViewModel _viewModel;
     private readonly Forms.NotifyIcon _trayIcon;
 
+    private Drawing.Icon? _trayIconImage;
+    private HwndSource? _windowSource;
     private bool _allowClose;
     private bool _closeInProgress;
     private bool _adjustingAspectRatio;
+    private bool _rdpBoundsRefreshScheduled;
     private double _lastWidth;
     private double _lastHeight;
     private bool _trayHintShown;
@@ -44,6 +58,7 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
         RdpHostContainer.Child = _childSessionService.RdpHost;
         RdpHostContainer.IsVisibleChanged += OnRdpHostVisibilityChanged;
+        RdpHostContainer.SizeChanged += OnRdpHostContainerSizeChanged;
         ControlCenterPanel.AddHandler(
             System.Windows.Controls.Primitives.ButtonBase.ClickEvent,
             new RoutedEventHandler(OnControlCenterActionClick));
@@ -52,6 +67,7 @@ public partial class MainWindow : Window
         _viewModel.SettingsRequested += OnSettingsRequested;
         _viewModel.ResolutionRequested += OnResolutionRequested;
         _viewModel.ResizeRequested += OnResizeRequested;
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
         RestoreWindowPlacement();
         _trayIcon = CreateTrayIcon();
@@ -86,6 +102,8 @@ public partial class MainWindow : Window
     {
         base.OnSourceInitialized(e);
         ApplyDarkTitleBar();
+        _windowSource = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+        _windowSource?.AddHook(OnWindowMessage);
     }
 
     protected override void OnStateChanged(EventArgs e)
@@ -174,11 +192,17 @@ public partial class MainWindow : Window
         SizeChanged -= OnWindowSizeChanged;
         TitleBar.SizeChanged -= OnTitleBarSizeChanged;
         RdpHostContainer.IsVisibleChanged -= OnRdpHostVisibilityChanged;
+        RdpHostContainer.SizeChanged -= OnRdpHostContainerSizeChanged;
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         I18nService.Instance.LanguageChanged -= OnLanguageChanged;
+        _windowSource?.RemoveHook(OnWindowMessage);
+        _windowSource = null;
 
         SaveWindowPlacement();
         _trayIcon.Visible = false;
         _trayIcon.Dispose();
+        _trayIconImage?.Dispose();
+        _trayIconImage = null;
 
         RdpHostContainer.Child = null;
         _viewModel.Dispose();
@@ -316,48 +340,45 @@ public partial class MainWindow : Window
 
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (_adjustingAspectRatio
-            || !_viewModel.KeepAspectRatio
-            || WindowState != WindowState.Normal
-            || !RdpHostContainer.IsVisible
-            || RdpHostContainer.ActualWidth <= 0
-            || RdpHostContainer.ActualHeight <= 0)
+        _lastWidth = Width;
+        _lastHeight = Height;
+        ScheduleRdpBoundsRefresh();
+    }
+
+    private void OnRdpHostContainerSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        ScheduleRdpBoundsRefresh();
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainWindowViewModel.KeepAspectRatio)
+            && _viewModel.KeepAspectRatio
+            && WindowState == WindowState.Normal)
         {
-            _lastWidth = Width;
-            _lastHeight = Height;
+            ResizeToWidth(Width);
+        }
+    }
+
+    /// <summary>
+    /// WindowsFormsHost 里的 RDP ActiveX 在窗口缩放后偶尔不会跟着改变尺寸，
+    /// 这里在 WPF 布局完成后强制同步一次。
+    /// </summary>
+    private void ScheduleRdpBoundsRefresh()
+    {
+        if (_rdpBoundsRefreshScheduled || !RdpHostContainer.IsVisible)
+        {
             return;
         }
 
-        var widthDelta = Math.Abs(e.NewSize.Width - _lastWidth);
-        var heightDelta = Math.Abs(e.NewSize.Height - _lastHeight);
-        var chromeHeight = ActualHeight - RdpHostContainer.ActualHeight;
-
-        try
-        {
-            _adjustingAspectRatio = true;
-            if (widthDelta >= heightDelta)
+        _rdpBoundsRefreshScheduled = true;
+        _ = Dispatcher.BeginInvoke(
+            new Action(() =>
             {
-                var targetHeight = RdpHostContainer.ActualWidth * 9d / 16d + chromeHeight;
-                if (Math.Abs(Height - targetHeight) > 1)
-                {
-                    Height = Math.Max(MinHeight, targetHeight);
-                }
-            }
-            else
-            {
-                var targetWidth = RdpHostContainer.ActualHeight * 16d / 9d;
-                if (Math.Abs(Width - targetWidth) > 1)
-                {
-                    Width = Math.Max(MinWidth, targetWidth);
-                }
-            }
-        }
-        finally
-        {
-            _adjustingAspectRatio = false;
-            _lastWidth = Width;
-            _lastHeight = Height;
-        }
+                _rdpBoundsRefreshScheduled = false;
+                _childSessionService.RefreshRdpDisplayBounds();
+            }),
+            DispatcherPriority.Loaded);
     }
 
     private void ResizeToWidth(double width)
@@ -384,6 +405,137 @@ public partial class MainWindow : Window
             _lastWidth = Width;
             _lastHeight = Height;
         }
+    }
+
+    private IntPtr OnWindowMessage(
+        IntPtr hwnd,
+        int message,
+        IntPtr wParam,
+        IntPtr lParam,
+        ref bool handled)
+    {
+        if (_adjustingAspectRatio
+            || message != WmSizing
+            || !_viewModel.KeepAspectRatio
+            || WindowState != WindowState.Normal
+            || !RdpHostContainer.IsVisible)
+        {
+            return IntPtr.Zero;
+        }
+
+        var edge = wParam.ToInt32();
+        var rect = Marshal.PtrToStructure<NativeRect>(lParam);
+        if (TryApplyAspectRatio(ref rect, edge))
+        {
+            Marshal.StructureToPtr(rect, lParam, false);
+        }
+
+        return IntPtr.Zero;
+    }
+
+    private bool TryApplyAspectRatio(ref NativeRect rect, int edge)
+    {
+        var width = rect.Right - rect.Left;
+        var height = rect.Bottom - rect.Top;
+        if (width <= 0 || height <= 0 || RdpHostContainer.ActualHeight <= 0)
+        {
+            return false;
+        }
+
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var scaleX = dpi.DpiScaleX;
+        var scaleY = dpi.DpiScaleY;
+        var chromeWidth = Math.Max(
+            0,
+            (ActualWidth - RdpHostContainer.ActualWidth) * scaleX);
+        var chromeHeight = Math.Max(
+            0,
+            (ActualHeight - RdpHostContainer.ActualHeight) * scaleY);
+        var minWidth = Math.Max(1, MinWidth * scaleX);
+        var minHeight = Math.Max(1, MinHeight * scaleY);
+
+        var oldWidth = Math.Max(1, _lastWidth * scaleX);
+        var oldHeight = Math.Max(1, _lastHeight * scaleY);
+        var widthDelta = Math.Abs(width - oldWidth);
+        var heightDelta = Math.Abs(height - oldHeight);
+        var widthDriven = edge is WmszLeft or WmszRight
+                          || (edge is not (WmszTop or WmszBottom)
+                              && widthDelta >= heightDelta);
+
+        var targetWidth = (double)width;
+        var targetHeight = (double)height;
+        if (widthDriven)
+        {
+            targetHeight = (targetWidth - chromeWidth) * 9d / 16d + chromeHeight;
+            if (targetHeight < minHeight)
+            {
+                targetHeight = minHeight;
+                targetWidth = (targetHeight - chromeHeight) * 16d / 9d + chromeWidth;
+            }
+        }
+        else
+        {
+            targetWidth = (targetHeight - chromeHeight) * 16d / 9d + chromeWidth;
+            if (targetWidth < minWidth)
+            {
+                targetWidth = minWidth;
+                targetHeight = (targetWidth - chromeWidth) * 9d / 16d + chromeHeight;
+            }
+        }
+
+        targetWidth = Math.Max(minWidth, Math.Round(targetWidth));
+        targetHeight = Math.Max(minHeight, Math.Round(targetHeight));
+
+        var changed = false;
+        if (widthDriven)
+        {
+            if (edge is WmszLeft or WmszTopLeft or WmszBottomLeft)
+            {
+                var newLeft = rect.Right - (int)targetWidth;
+                changed |= newLeft != rect.Left;
+                rect.Left = newLeft;
+            }
+            else
+            {
+                var newRight = rect.Left + (int)targetWidth;
+                changed |= newRight != rect.Right;
+                rect.Right = newRight;
+            }
+
+            var newBottom = rect.Top + (int)targetHeight;
+            changed |= newBottom != rect.Bottom;
+            rect.Bottom = newBottom;
+        }
+        else
+        {
+            if (edge is WmszTop or WmszTopLeft or WmszTopRight)
+            {
+                var newTop = rect.Bottom - (int)targetHeight;
+                changed |= newTop != rect.Top;
+                rect.Top = newTop;
+            }
+            else
+            {
+                var newBottom = rect.Top + (int)targetHeight;
+                changed |= newBottom != rect.Bottom;
+                rect.Bottom = newBottom;
+            }
+
+            var newRight = rect.Left + (int)targetWidth;
+            changed |= newRight != rect.Right;
+            rect.Right = newRight;
+        }
+
+        return changed;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
     }
 
     private void RestoreWindowPlacement()
@@ -450,15 +602,52 @@ public partial class MainWindow : Window
             null,
             (_, _) => Dispatcher.Invoke(Close));
 
+        _trayIconImage = LoadTrayIcon();
         var icon = new Forms.NotifyIcon
         {
-            Icon = Drawing.SystemIcons.Application,
+            Icon = _trayIconImage ?? Drawing.SystemIcons.Application,
             Text = "VirtualDesktopRDP",
             Visible = true,
             ContextMenuStrip = menu
         };
         icon.DoubleClick += (_, _) => Dispatcher.Invoke(ShowFromTray);
         return icon;
+    }
+
+    private static Drawing.Icon? LoadTrayIcon()
+    {
+        try
+        {
+            var resource = System.Windows.Application.GetResourceStream(
+                new Uri("pack://application:,,,/VDRDP.ico"));
+            if (resource?.Stream is { } stream)
+            {
+                using (stream)
+                {
+                    return new Drawing.Icon(stream);
+                }
+            }
+        }
+        catch (Exception exception) when (exception is IOException
+                                              or ArgumentException)
+        {
+            // 资源缺失时退回可执行文件图标。
+        }
+
+        try
+        {
+            var processPath = Environment.ProcessPath;
+            if (!string.IsNullOrWhiteSpace(processPath))
+            {
+                return Drawing.Icon.ExtractAssociatedIcon(processPath);
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                              or IOException)
+        {
+        }
+
+        return null;
     }
 
     private void UpdateTrayMenuText()

@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="VDRDP.ico" />
+    <Resource Include="VDRDP.ico" />
     <Content Include="I18n\*.json"
              CopyToOutputDirectory="Always"
              CopyToPublishDirectory="Always" />

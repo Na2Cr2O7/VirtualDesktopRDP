@@ -168,6 +168,20 @@ internal sealed class RdpActiveXHost : AxHost
             ?? throw new COMException("RDP ActiveX 未返回 AdvancedSettings7。");
         RunComStep("设置显示缩放", () =>
             SetComProperty(advancedSettings, "SmartSizing", enabled));
+        RefreshDisplayBounds();
+        if (IsHandleCreated && !IsDisposed && !Disposing)
+        {
+            Invalidate(true);
+        }
+    }
+
+    /// <summary>强制 RDP 控件重新贴合 WinFormsHost 的当前大小并重绘。</summary>
+    internal void RefreshDisplayBounds()
+    {
+        if (RestoreHostBounds() && IsHandleCreated && !IsDisposed && !Disposing)
+        {
+            Invalidate(true);
+        }
     }
 
     /// <summary>设置系统组合键发送位置；下次连接时生效。</summary>
@@ -372,23 +386,23 @@ internal sealed class RdpActiveXHost : AxHost
         RestoreHostBounds();
         if (IsHandleCreated && !IsDisposed && !Disposing)
         {
-            BeginInvoke(new Action(RestoreHostBounds));
+            BeginInvoke(new Action(() => RestoreHostBounds()));
         }
 
         LoginCompleted?.Invoke(this, EventArgs.Empty);
     }
 
-    private void RestoreHostBounds()
+    private bool RestoreHostBounds()
     {
         if (!IsHandleCreated || IsDisposed || Disposing || Parent is not Control parent)
         {
-            return;
+            return false;
         }
 
         var clientSize = parent.ClientSize;
         if (clientSize.Width <= 0 || clientSize.Height <= 0)
         {
-            return;
+            return false;
         }
 
         if (Dock == DockStyle.Fill
@@ -397,7 +411,7 @@ internal sealed class RdpActiveXHost : AxHost
             && Bounds.Width == clientSize.Width
             && Bounds.Height == clientSize.Height)
         {
-            return;
+            return false;
         }
 
         // 先取消 Dock 再设置 Bounds，最后恢复 Fill，强制 WinForms 重新布局。
@@ -405,7 +419,7 @@ internal sealed class RdpActiveXHost : AxHost
         Bounds = new Rectangle(0, 0, clientSize.Width, clientSize.Height);
         Dock = DockStyle.Fill;
         parent.PerformLayout();
-        Invalidate(true);
+        return true;
     }
 
     private void OnDisconnected(int disconnectReason)
