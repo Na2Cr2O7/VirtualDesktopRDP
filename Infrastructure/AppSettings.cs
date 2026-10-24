@@ -34,6 +34,12 @@ public sealed class AppSettings
     /// <summary>是否启用游戏鼠标：锁定本机鼠标并把相对移动转发到子会话。</summary>
     public bool GameMouseModeEnabled { get; set; }
 
+    /// <summary>虚拟桌面分辨率宽度。</summary>
+    public int DesktopWidth { get; set; } = ResolutionConstraints.DefaultWidth;
+
+    /// <summary>虚拟桌面分辨率高度。</summary>
+    public int DesktopHeight { get; set; } = ResolutionConstraints.DefaultHeight;
+
     /// <summary>普通窗口宽度，用于恢复上次窗口尺寸。</summary>
     public double NormalWidth { get; set; } = 1280;
 
@@ -62,6 +68,8 @@ public sealed class AppSettings
             AudioMuted = AudioMuted,
             WatchModeEnabled = WatchModeEnabled,
             GameMouseModeEnabled = GameMouseModeEnabled,
+            DesktopWidth = DesktopWidth,
+            DesktopHeight = DesktopHeight,
             NormalWidth = NormalWidth,
             NormalHeight = NormalHeight,
             WindowLeft = WindowLeft,

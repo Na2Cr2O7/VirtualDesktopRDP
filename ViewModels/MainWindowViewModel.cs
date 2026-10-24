@@ -74,6 +74,8 @@ internal sealed class MainWindowViewModel : ObservableObject
             () => CanConnectOrDisconnect);
         HideCommand = new RelayCommand(() => HideRequested?.Invoke(this, EventArgs.Empty));
         SettingsCommand = new RelayCommand(() => SettingsRequested?.Invoke(this, EventArgs.Empty));
+        OpenResolutionCommand = new RelayCommand(
+            () => ResolutionRequested?.Invoke(this, EventArgs.Empty));
         ToggleWatchModeCommand = new RelayCommand(ToggleWatchMode);
         ToggleAudioMutedCommand = new RelayCommand(ToggleAudioMuted);
         ToggleGameMouseModeCommand = new AsyncRelayCommand(ToggleGameMouseModeAsync);
@@ -94,6 +96,8 @@ internal sealed class MainWindowViewModel : ObservableObject
 
     public event EventHandler? SettingsRequested;
 
+    public event EventHandler? ResolutionRequested;
+
     public event EventHandler<int>? ResizeRequested;
 
     public ICommand StartCommand { get; }
@@ -101,6 +105,8 @@ internal sealed class MainWindowViewModel : ObservableObject
     public ICommand HideCommand { get; }
 
     public ICommand SettingsCommand { get; }
+
+    public ICommand OpenResolutionCommand { get; }
 
     public ICommand ToggleWatchModeCommand { get; }
 
@@ -321,6 +327,16 @@ internal sealed class MainWindowViewModel : ObservableObject
         ? I18nService.T("还原窗口")
         : I18nService.T("小窗模式");
 
+    public string ResolutionMenuHeader => I18nService.F(
+        "分辨率 {0}×{1}",
+        _childSessionService.DesktopWidth,
+        _childSessionService.DesktopHeight);
+
+    public void RefreshResolutionHeader()
+    {
+        OnPropertyChanged(nameof(ResolutionMenuHeader));
+    }
+
     public string AudioMenuHeader => IsAudioMuted
         ? I18nService.T("开启声音")
         : I18nService.T("静音");
@@ -367,6 +383,7 @@ internal sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(AudioMenuHeader));
         OnPropertyChanged(nameof(GameMouseModeButtonText));
         OnPropertyChanged(nameof(GameMouseModeToolTip));
+        OnPropertyChanged(nameof(ResolutionMenuHeader));
         _childSessionService.RefreshLanguage();
         UpdateConnectionStatus();
     }

@@ -50,6 +50,7 @@ public partial class MainWindow : Window
 
         _viewModel.HideRequested += OnHideRequested;
         _viewModel.SettingsRequested += OnSettingsRequested;
+        _viewModel.ResolutionRequested += OnResolutionRequested;
         _viewModel.ResizeRequested += OnResizeRequested;
 
         RestoreWindowPlacement();
@@ -237,6 +238,38 @@ public partial class MainWindow : Window
         {
             _settingsService.Update(window.Settings);
             I18nService.Instance.ChangeLanguage(window.Settings.Language);
+        }
+    }
+
+    private void OnResolutionRequested(object? sender, EventArgs e)
+    {
+        var window = new ResolutionWindow(
+            _childSessionService.DesktopWidth,
+            _childSessionService.DesktopHeight)
+        {
+            Owner = this
+        };
+        if (window.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            _childSessionService.SetDesktopResolution(
+                window.SelectedWidth,
+                window.SelectedHeight);
+            _viewModel.RefreshResolutionHeader();
+        }
+        catch (Exception exception)
+        {
+            AppMessageBox.Show(
+                exception.GetBaseException().Message,
+                I18nService.T("输入分辨率"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Error,
+                MessageBoxResult.OK,
+                this);
         }
     }
 

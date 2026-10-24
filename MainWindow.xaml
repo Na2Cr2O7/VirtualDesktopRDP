@@ -326,6 +326,9 @@
                                               Content="{i18n:T 保持 16:9}"
                                               IsChecked="{Binding KeepAspectRatio, Mode=OneWay}"
                                               Style="{StaticResource ControlCenterToggle}" />
+                                <Button Command="{Binding OpenResolutionCommand}"
+                                        Content="{Binding ResolutionMenuHeader}"
+                                        Style="{StaticResource ControlCenterItem}" />
                                 <Button Command="{Binding ToggleSmallWindowCommand}"
                                         Content="{Binding SmallWindowMenuHeader}"
                                         Style="{StaticResource ControlCenterItem}" />

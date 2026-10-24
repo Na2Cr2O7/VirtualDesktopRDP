@@ -21,7 +21,6 @@ namespace VirtualDesktopRDP.Services;
 /// </summary>
 internal sealed class ChildSessionService : IDisposable
 {
-    private static readonly DrawingSize DefaultDesktopSize = new(1920, 1080);
     private static readonly TimeSpan ConnectionTimeout = TimeSpan.FromSeconds(60);
     private const int InitialConnectionRetryCount = 3;
     private const int RdpSettingsReconnectRetryCount = 2;
@@ -91,6 +90,16 @@ internal sealed class ChildSessionService : IDisposable
     public bool AudioMuted => Settings.AudioMuted;
 
     public bool WatchModeEnabled => Settings.WatchModeEnabled;
+
+    public int DesktopWidth => ResolutionConstraints.Normalize(
+        Settings.DesktopWidth,
+        Settings.DesktopHeight).Width;
+
+    public int DesktopHeight => ResolutionConstraints.Normalize(
+        Settings.DesktopWidth,
+        Settings.DesktopHeight).Height;
+
+    private DrawingSize CurrentDesktopSize => new(DesktopWidth, DesktopHeight);
 
     public bool HasEnvironmentIssue => _environmentIssues.Count > 0;
 
@@ -217,6 +226,42 @@ internal sealed class ChildSessionService : IDisposable
 
         RdpHost.DisconnectSession();
         RefreshState(I18nService.T("已断开 RDP 连接，虚拟桌面会话仍在运行"));
+    }
+
+    /// <summary>
+    /// 修改虚拟桌面分辨率。已连接时会自动重连 RDP；没有会话时保存后下次连接生效。
+    /// 返回是否启动了重连。
+    /// </summary>
+    public bool SetDesktopResolution(int width, int height)
+    {
+        ThrowIfDisposed();
+        if (ResolutionConstraints.IsBelowMinimum(width, height))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(width),
+                I18nService.T("分辨率不得低于 800×600。"));
+        }
+
+        if (ResolutionConstraints.IsAboveMaximum(width, height))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(width),
+                I18nService.T("分辨率不能超过 8192×8192。"));
+        }
+
+        if (Settings.DesktopWidth == width && Settings.DesktopHeight == height)
+        {
+            return false;
+        }
+
+        Settings.DesktopWidth = width;
+        Settings.DesktopHeight = height;
+        _settingsService.Save();
+        var message = I18nService.F(
+            "分辨率已改为 {0}×{1}",
+            width,
+            height);
+        return ReconnectForRdpSettingChange(RdpSettingChange.Resolution, message);
     }
 
     /// <summary>切换 RDP 画面自适应 / 1:1。</summary>
@@ -479,7 +524,7 @@ internal sealed class ChildSessionService : IDisposable
             _initialConnectionRetriesRemaining = _autoStartPending
                 ? InitialConnectionRetryCount
                 : 0;
-            RdpHost.ConnectToChildSession(DefaultDesktopSize);
+            RdpHost.ConnectToChildSession(CurrentDesktopSize);
         }
 
         RefreshState(operationMessage);
@@ -699,7 +744,7 @@ internal sealed class ChildSessionService : IDisposable
                 retryNumber,
                 RdpSettingsReconnectRetryCount));
             _rdpSettingsReconnectRetryInProgress = false;
-            RdpHost.ReconnectToChildSession(DefaultDesktopSize);
+            RdpHost.ReconnectToChildSession(CurrentDesktopSize);
         }
         catch (OperationCanceledException) when (_disposed)
         {
@@ -755,7 +800,7 @@ internal sealed class ChildSessionService : IDisposable
                 InitialConnectionRetryCount));
             _connectionRetryInProgress = false;
             // OnLogonError 触发后 ActiveX 可能仍处于连接状态，必须先断开再重连。
-            RdpHost.ReconnectToChildSession(DefaultDesktopSize);
+            RdpHost.ReconnectToChildSession(CurrentDesktopSize);
         }
         catch (OperationCanceledException) when (_disposed)
         {
@@ -872,7 +917,7 @@ internal sealed class ChildSessionService : IDisposable
         _rdpSettingsReconnectRetriesRemaining = RdpSettingsReconnectRetryCount;
         try
         {
-            RdpHost.ReconnectToChildSession(DefaultDesktopSize);
+            RdpHost.ReconnectToChildSession(CurrentDesktopSize);
         }
         catch
         {
@@ -928,6 +973,7 @@ internal sealed class ChildSessionService : IDisposable
     {
         None = 0,
         SystemShortcuts = 1,
-        Audio = 2
+        Audio = 2,
+        Resolution = 4
     }
 }
