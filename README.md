@@ -47,7 +47,29 @@
 - 以管理员权限在子会话中启动任意 `.exe`
 - 新建会话后按列表自动启动程序
 
+<!-- <details> -->
+<summary>截图</summary>
 
+#### 界面
+
+![alt text](./assets/image.png)
+
+
+#### 连接
+![alt text](./assets/image-1.png)
+
+#### 1280×720分辨率
+很遗憾，如果在运行远程桌面时调整分辨率和显示方式，需要重新调整窗口大小才能正常使用。目前**尚无**能力解决该问题。
+
+![alt text](./assets/image-2.png)
+
+#### 自动启动应用程序
+![alt text](./assets/image-3.png)
+
+#### 游戏鼠标
+>游戏鼠标模式下，回报率最大为100Hz。
+
+![alt text](./assets/image-4.png)
 ## 防火墙
 
 本项目启动时会自动检查并写入一条针对当前 `VirtualDesktopRDP.exe` 的入站放行规则（所有网络配置文件）。如果失败，可以在“控制中心 → 更多 → 修复防火墙规则”中重试。
@@ -70,6 +92,11 @@
 
 ```text
 %LOCALAPPDATA%\VirtualDesktopRDP\settings.json
+```
+
+```bash
+notepad %LOCALAPPDATA%\VirtualDesktopRDP\settings.json
+edit %LOCALAPPDATA%\VirtualDesktopRDP\settings.json
 ```
 
 
