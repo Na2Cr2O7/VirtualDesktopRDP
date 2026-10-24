@@ -36,6 +36,7 @@ internal sealed class RdpActiveXHost : AxHost
     private bool _sendSystemShortcutsToRemote = true;
     private bool _audioMuted;
     private DrawingSize? _pendingReconnectDesktopSize;
+    private DrawingSize _lastSyncedSize;
     private bool _smartSizingEnabled = true;
     private bool _inputBlocked;
 
@@ -198,17 +199,44 @@ internal sealed class RdpActiveXHost : AxHost
             Dock = DockStyle.Fill;
         }
 
-        if (Bounds.X == 0
-            && Bounds.Y == 0
-            && Bounds.Width == targetSize.Width
-            && Bounds.Height == targetSize.Height)
+        var sizeChanged = _lastSyncedSize != targetSize;
+        if (sizeChanged)
         {
-            return;
+            _lastSyncedSize = targetSize;
+            if (Bounds.X == 0
+                && Bounds.Y == 0
+                && Bounds.Width == targetSize.Width
+                && Bounds.Height == targetSize.Height)
+            {
+                // WindowsFormsHost 已经把 Bounds 改对，但 RDP 的渲染表面可能还停留在旧尺寸。
+                // 用 1px 的临时改变强制 ActiveX 收到一次真实的尺寸变化。
+                SetBounds(0, 0, Math.Max(1, targetSize.Width - 1), targetSize.Height);
+            }
+
+            SetBounds(0, 0, targetSize.Width, targetSize.Height);
+            ReapplySmartSizing();
+            parent.PerformLayout();
         }
 
-        SetBounds(0, 0, targetSize.Width, targetSize.Height);
-        parent.PerformLayout();
         Invalidate(true);
+    }
+
+    private void ReapplySmartSizing()
+    {
+        try
+        {
+            var advancedSettings = GetComProperty(GetRequiredOcx(), "AdvancedSettings7");
+            if (advancedSettings is not null)
+            {
+                SetComProperty(advancedSettings, "SmartSizing", _smartSizingEnabled);
+            }
+        }
+        catch (Exception exception) when (exception is COMException
+                                              or TargetInvocationException
+                                              or InvalidOperationException)
+        {
+            // 重设缩放属性失败不应影响窗口缩放主流程。
+        }
     }
 
     /// <summary>设置系统组合键发送位置；下次连接时生效。</summary>
@@ -407,6 +435,7 @@ internal sealed class RdpActiveXHost : AxHost
         _connectionAttemptInProgress = false;
         _connectionFailureReported = false;
         _lastConnectionDiagnostic = null;
+        _lastSyncedSize = DrawingSize.Empty;
 
         LoginCompleted?.Invoke(this, EventArgs.Empty);
     }
