@@ -11,6 +11,7 @@
 
 - Windows 10 / 11 非家庭版（家庭版可能可用，但不受微软支持）
 > 部分 家庭版Windows / 精简版Windows 可能会出现RDP组件缺失，可以尝试https://github.com/stascorp/rdpwrap/
+> 但是这是最后的办法，在这之前建议尝试`DISM.exe /Online /Cleanup-image /Restorehealth`+`sfc /scannow`修复系统损坏和缺失文件。
 
 - 以管理员权限运行
 - 系统 RDP 未被关闭、未被 RDP Wrapper 接管
@@ -36,6 +37,7 @@
 - 隐藏到托盘（RDP 连接保持）
 - 关闭并注销
 - 观看模式（屏蔽本机键鼠进入子会话）
+- 游戏鼠标（RDP 相对鼠标，适合在虚拟桌面中操作游戏；依赖 Windows 11 24H2 及以上的 RDP 相对鼠标支持）
 - 自适应 / 1:1、保持 16:9
 - 小窗模式
 - 系统组合键发送到虚拟桌面

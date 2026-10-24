@@ -31,6 +31,9 @@ public sealed class AppSettings
     /// <summary>是否屏蔽本机进入子会话的键鼠输入。</summary>
     public bool WatchModeEnabled { get; set; }
 
+    /// <summary>是否启用游戏鼠标：锁定本机鼠标并把相对移动转发到子会话。</summary>
+    public bool GameMouseModeEnabled { get; set; }
+
     /// <summary>普通窗口宽度，用于恢复上次窗口尺寸。</summary>
     public double NormalWidth { get; set; } = 1280;
 
@@ -58,6 +61,7 @@ public sealed class AppSettings
             SendSystemShortcutsToRemote = SendSystemShortcutsToRemote,
             AudioMuted = AudioMuted,
             WatchModeEnabled = WatchModeEnabled,
+            GameMouseModeEnabled = GameMouseModeEnabled,
             NormalWidth = NormalWidth,
             NormalHeight = NormalHeight,
             WindowLeft = WindowLeft,

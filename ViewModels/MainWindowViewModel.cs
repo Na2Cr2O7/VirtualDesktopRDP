@@ -8,6 +8,7 @@ using WpfMessageBoxButton = System.Windows.MessageBoxButton;
 using WpfMessageBoxImage = System.Windows.MessageBoxImage;
 using WpfMessageBoxResult = System.Windows.MessageBoxResult;
 using VirtualDesktopRDP.Dialogs;
+using VirtualDesktopRDP.GameMouse;
 using VirtualDesktopRDP.I18n;
 using VirtualDesktopRDP.Infrastructure;
 using VirtualDesktopRDP.Services;
@@ -20,6 +21,7 @@ namespace VirtualDesktopRDP.ViewModels;
 internal sealed class MainWindowViewModel : ObservableObject
 {
     private readonly ChildSessionService _childSessionService;
+    private readonly GameMouseService _gameMouseService;
 
     private string _statusTitle = "虚拟桌面尚未启动";
     private string _statusDescription = "点击“启动”，创建一个独立的 Windows 会话。";
@@ -38,12 +40,17 @@ internal sealed class MainWindowViewModel : ObservableObject
     private bool _isWatchModeEnabled;
     private bool _isAudioMuted;
     private bool _sendSystemShortcutsToRemote = true;
+    private bool _isGameMouseModeEnabled;
+    private bool _gameMouseErrorShown;
     private bool _isSmallWindowMode;
     private bool _startRequested;
 
-    public MainWindowViewModel(ChildSessionService childSessionService)
+    public MainWindowViewModel(
+        ChildSessionService childSessionService,
+        GameMouseService gameMouseService)
     {
         _childSessionService = childSessionService;
+        _gameMouseService = gameMouseService;
 
         _isTopmost = _childSessionService.TopmostEnabled;
         _isAdaptive = _childSessionService.SmartSizingEnabled;
@@ -52,12 +59,14 @@ internal sealed class MainWindowViewModel : ObservableObject
         _isWatchModeEnabled = _childSessionService.WatchModeEnabled;
         _isAudioMuted = _childSessionService.AudioMuted;
         _sendSystemShortcutsToRemote = _childSessionService.SendSystemShortcutsToRemote;
+        _isGameMouseModeEnabled = _gameMouseService.IsEnabled;
 
         _childSessionService.StateChanged += OnChildSessionStateChanged;
         _childSessionService.ConnectionFailed += OnChildSessionConnectionFailed;
         _childSessionService.SystemShortcutsReconnectCompleted +=
             OnSystemShortcutsReconnectCompleted;
         _childSessionService.AudioReconnectCompleted += OnAudioReconnectCompleted;
+        _gameMouseService.StateChanged += OnGameMouseStateChanged;
         I18nService.Instance.LanguageChanged += OnLanguageChanged;
 
         StartCommand = new RelayCommand(
@@ -67,6 +76,7 @@ internal sealed class MainWindowViewModel : ObservableObject
         SettingsCommand = new RelayCommand(() => SettingsRequested?.Invoke(this, EventArgs.Empty));
         ToggleWatchModeCommand = new RelayCommand(ToggleWatchMode);
         ToggleAudioMutedCommand = new RelayCommand(ToggleAudioMuted);
+        ToggleGameMouseModeCommand = new AsyncRelayCommand(ToggleGameMouseModeAsync);
         ToggleSendSystemShortcutsCommand = new RelayCommand(ToggleSendSystemShortcuts);
         ToggleTopmostCommand = new RelayCommand(ToggleTopmost);
         UseAdaptiveCommand = new RelayCommand(UseAdaptive);
@@ -95,6 +105,8 @@ internal sealed class MainWindowViewModel : ObservableObject
     public ICommand ToggleWatchModeCommand { get; }
 
     public ICommand ToggleAudioMutedCommand { get; }
+
+    public ICommand ToggleGameMouseModeCommand { get; }
 
     public ICommand ToggleSendSystemShortcutsCommand { get; }
 
@@ -242,6 +254,19 @@ internal sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _isAudioMuted, value);
     }
 
+    public bool IsGameMouseModeEnabled
+    {
+        get => _isGameMouseModeEnabled;
+        private set
+        {
+            if (SetProperty(ref _isGameMouseModeEnabled, value))
+            {
+                OnPropertyChanged(nameof(GameMouseModeButtonText));
+                OnPropertyChanged(nameof(GameMouseModeToolTip));
+            }
+        }
+    }
+
     public bool SendSystemShortcutsToRemote
     {
         get => _sendSystemShortcutsToRemote;
@@ -275,6 +300,14 @@ internal sealed class MainWindowViewModel : ObservableObject
     public string ConnectButtonTooltip => IsConnected
         ? I18nService.T("断开 RDP 连接，虚拟桌面会话和窗口保持运行")
         : I18nService.T("启动并连接 RDP");
+
+    public string GameMouseModeButtonText => IsGameMouseModeEnabled
+        ? I18nService.T("游戏鼠标")
+        : I18nService.T("普通鼠标");
+
+    public string GameMouseModeToolTip => IsGameMouseModeEnabled
+        ? I18nService.T("游戏鼠标已开启：本机鼠标锁定在虚拟桌面内，按住 Alt 可临时释放。")
+        : I18nService.T("开启游戏鼠标：将本机鼠标的相对移动转发到虚拟桌面，适合控制游戏视角。");
 
     public string TopmostMenuHeader => IsTopmost
         ? I18nService.T("取消置顶")
@@ -320,6 +353,7 @@ internal sealed class MainWindowViewModel : ObservableObject
         _childSessionService.SystemShortcutsReconnectCompleted -=
             OnSystemShortcutsReconnectCompleted;
         _childSessionService.AudioReconnectCompleted -= OnAudioReconnectCompleted;
+        _gameMouseService.StateChanged -= OnGameMouseStateChanged;
         I18nService.Instance.LanguageChanged -= OnLanguageChanged;
     }
 
@@ -331,6 +365,8 @@ internal sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(WatchModeMenuHeader));
         OnPropertyChanged(nameof(SmallWindowMenuHeader));
         OnPropertyChanged(nameof(AudioMenuHeader));
+        OnPropertyChanged(nameof(GameMouseModeButtonText));
+        OnPropertyChanged(nameof(GameMouseModeToolTip));
         _childSessionService.RefreshLanguage();
         UpdateConnectionStatus();
     }
@@ -453,6 +489,41 @@ internal sealed class MainWindowViewModel : ObservableObject
         {
             ShowError(exception);
         }
+    }
+
+    private async Task ToggleGameMouseModeAsync()
+    {
+        try
+        {
+            await _gameMouseService.SetEnabledAsync(!_gameMouseService.IsEnabled);
+            IsGameMouseModeEnabled = _gameMouseService.IsEnabled;
+        }
+        catch (Exception exception)
+        {
+            ShowError(exception);
+        }
+    }
+
+    private void OnGameMouseStateChanged(object? sender, EventArgs e)
+    {
+        _ = WpfApplication.Current.Dispatcher.BeginInvoke(new Action(() =>
+        {
+            IsGameMouseModeEnabled = _gameMouseService.IsEnabled;
+            var error = _gameMouseService.LastError;
+            if (!string.IsNullOrWhiteSpace(error) && !_gameMouseErrorShown)
+            {
+                _gameMouseErrorShown = true;
+                AppMessageBox.Show(
+                    error,
+                    I18nService.T("游戏鼠标"),
+                    WpfMessageBoxButton.OK,
+                    WpfMessageBoxImage.Warning);
+            }
+            else if (string.IsNullOrWhiteSpace(error))
+            {
+                _gameMouseErrorShown = false;
+            }
+        }));
     }
 
     private void ToggleSendSystemShortcuts()

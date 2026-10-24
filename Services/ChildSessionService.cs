@@ -10,6 +10,7 @@ using System.Windows.Threading;
 using VirtualDesktopRDP.I18n;
 using VirtualDesktopRDP.Infrastructure;
 using VirtualDesktopRDP.Rdp;
+using DrawingRectangle = System.Drawing.Rectangle;
 using DrawingSize = System.Drawing.Size;
 
 namespace VirtualDesktopRDP.Services;
@@ -121,6 +122,19 @@ internal sealed class ChildSessionService : IDisposable
 
         RefreshState();
         return ChildSessionId is not null;
+    }
+
+    /// <summary>RDP 输入窗口当前是否拥有键盘焦点。</summary>
+    public bool IsRdpInputWindowFocused()
+    {
+        return RdpHost.IsInputWindowFocused();
+    }
+
+    /// <summary>RDP 画面在屏幕上的矩形区域，用于约束本机鼠标。</summary>
+    public bool TryGetRdpClientBounds(out DrawingRectangle bounds)
+    {
+        bounds = RdpHost.RectangleToScreen(RdpHost.ClientRectangle);
+        return bounds.Width > 0 && bounds.Height > 0;
     }
 
     /// <summary>启用 Child Session，建立 RDP 连接，并等待登录完成。</summary>

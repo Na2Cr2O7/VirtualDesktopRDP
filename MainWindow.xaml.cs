@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using VirtualDesktopRDP.Dialogs;
+using VirtualDesktopRDP.GameMouse;
 using VirtualDesktopRDP.I18n;
 using VirtualDesktopRDP.Infrastructure;
 using VirtualDesktopRDP.Services;
@@ -19,6 +20,7 @@ public partial class MainWindow : Window
 
     private readonly SettingsService _settingsService;
     private readonly ChildSessionService _childSessionService;
+    private readonly GameMouseService _gameMouseService;
     private readonly MainWindowViewModel _viewModel;
     private readonly Forms.NotifyIcon _trayIcon;
 
@@ -37,7 +39,8 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _childSessionService = new ChildSessionService(_settingsService);
-        _viewModel = new MainWindowViewModel(_childSessionService);
+        _gameMouseService = new GameMouseService(_childSessionService, _settingsService);
+        _viewModel = new MainWindowViewModel(_childSessionService, _gameMouseService);
         DataContext = _viewModel;
         RdpHostContainer.Child = _childSessionService.RdpHost;
         RdpHostContainer.IsVisibleChanged += OnRdpHostVisibilityChanged;
@@ -178,6 +181,7 @@ public partial class MainWindow : Window
 
         RdpHostContainer.Child = null;
         _viewModel.Dispose();
+        _gameMouseService.Dispose();
         _childSessionService.Dispose();
 
         base.OnClosed(e);

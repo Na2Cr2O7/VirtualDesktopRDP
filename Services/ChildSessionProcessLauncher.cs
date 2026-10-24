@@ -23,15 +23,21 @@ internal static class ChildSessionProcessLauncher
     /// <summary>
     /// 校验程序路径并在目标 Child Session 中以管理员权限启动。
     /// </summary>
-    internal static Task LaunchElevatedAsync(uint childSessionId, string executablePath)
+    internal static Task LaunchElevatedAsync(
+        uint childSessionId,
+        string executablePath,
+        string arguments = "",
+        string? workingDirectory = null)
     {
         var fullPath = ValidateExecutablePath(executablePath);
-        var workingDirectory = Path.GetDirectoryName(fullPath) ?? AppContext.BaseDirectory;
+        var actualWorkingDirectory = workingDirectory
+                                     ?? Path.GetDirectoryName(fullPath)
+                                     ?? AppContext.BaseDirectory;
         return Task.Run(() => LaunchWithTemporaryTask(
             childSessionId,
             fullPath,
-            string.Empty,
-            workingDirectory));
+            arguments,
+            actualWorkingDirectory));
     }
 
     private static void LaunchWithTemporaryTask(

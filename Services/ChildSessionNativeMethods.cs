@@ -205,6 +205,13 @@ internal static class ChildSessionNativeMethods
         return GetFocus() == inputWindow;
     }
 
+    /// <summary>RDP 输入窗口当前是否拥有键盘焦点。</summary>
+    internal static bool IsRdpInputWindowFocused(IntPtr rdpHostWindow)
+    {
+        var inputWindow = FindRdpInputWindow(rdpHostWindow);
+        return inputWindow != IntPtr.Zero && GetFocus() == inputWindow;
+    }
+
     /// <summary>
     /// 禁用或恢复 RDP 的输入窗口。禁用后本机键鼠不会进入子会话，画面渲染不受影响。
     /// </summary>

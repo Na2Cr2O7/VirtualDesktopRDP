@@ -286,6 +286,12 @@
                                   shell:WindowChrome.IsHitTestVisibleInChrome="True"
                                   Style="{StaticResource ToolbarToggleButton}"
                                   ToolTip="{Binding WatchModeMenuHeader}" />
+                    <ToggleButton Command="{Binding ToggleGameMouseModeCommand}"
+                                  Content="{Binding GameMouseModeButtonText}"
+                                  IsChecked="{Binding IsGameMouseModeEnabled, Mode=OneWay}"
+                                  shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                                  Style="{StaticResource ToolbarToggleButton}"
+                                  ToolTip="{Binding GameMouseModeToolTip}" />
 
                     <ToggleButton x:Name="ControlCenterButton"
                                   Click="OnControlCenterButtonClick"
@@ -326,6 +332,16 @@
                                 <Button Command="{Binding ToggleTopmostCommand}"
                                         Content="{Binding TopmostMenuHeader}"
                                         Style="{StaticResource ControlCenterItem}" />
+
+                                <Border Height="1"
+                                        Margin="8,6"
+                                        Background="#33FFFFFF" />
+
+                                <TextBlock Style="{StaticResource ControlCenterSection}" Text="{i18n:T 输入}" />
+                                <ToggleButton Command="{Binding ToggleGameMouseModeCommand}"
+                                              Content="{i18n:T 游戏鼠标}"
+                                              IsChecked="{Binding IsGameMouseModeEnabled, Mode=OneWay}"
+                                              Style="{StaticResource ControlCenterToggle}" />
 
                                 <Border Height="1"
                                         Margin="8,6"

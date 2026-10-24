@@ -193,6 +193,13 @@ internal sealed class RdpActiveXHost : AxHost
         ChildSessionNativeMethods.SetRdpInputWindowEnabled(Handle, !blocked);
     }
 
+    /// <summary>RDP 输入窗口当前是否拥有键盘焦点。</summary>
+    internal bool IsInputWindowFocused()
+    {
+        return ConnectedState == 1
+               && ChildSessionNativeMethods.IsRdpInputWindowFocused(Handle);
+    }
+
     /// <summary>断开后重新连接；用于应用仅在连接时生效的 RDP 设置。</summary>
     internal void ReconnectToChildSession(DrawingSize desktopSize)
     {
