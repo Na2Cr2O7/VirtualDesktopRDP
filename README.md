@@ -1,3 +1,5 @@
+<img src="VirtualDesktopRDP.png" width="200"/>
+
 # VirtualDesktopRDP
 
 <!-- 从 BetterGI 的“桌面分身”功能中提取的程序。它不做远程桌面协议实现，而是组合 Windows 自带能力： -->
