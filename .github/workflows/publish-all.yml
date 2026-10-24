@@ -1,0 +1,48 @@
+name: Publish all architectures
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.rid }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: win-x86
+            profile: Lite32
+          - rid: win-x64
+            profile: Lite64
+          - rid: win-arm64
+            profile: LiteARM64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: "**/*.csproj"
+
+      - name: Publish ${{ matrix.rid }}
+        shell: pwsh
+        run: |
+          dotnet publish .\VirtualDesktopRDP.csproj `
+            -c Release `
+            -p:PublishProfile=${{ matrix.profile }} `
+            --output "${{ github.workspace }}\artifacts\${{ matrix.rid }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VirtualDesktopRDP-${{ matrix.rid }}
+          path: artifacts/${{ matrix.rid }}/**
+          if-no-files-found: error

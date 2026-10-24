@@ -88,7 +88,16 @@
 dotnet build .\VirtualDesktopRDP.csproj
 ```
 
-生成的程序位于 `bin\Debug\net10.0-windows\VirtualDesktopRDP.exe`。直接双击会请求管理员权限。
+生成的程序位于 `bin\Debug\net10.0-windows8.0\VirtualDesktopRDP.exe`。直接双击会请求管理员权限。
+
+## GitHub Actions
+
+仓库包含两个 Windows 发布工作流，均使用 `Properties/PublishProfiles` 中的“依赖框架 + 单文件”配置：
+
+- `Build x64`：每次 `push` 自动使用 `Lite64.pubxml` 发布 `win-x64`，生成 `VirtualDesktopRDP-win-x64` artifact；
+- `Publish all architectures`：在 GitHub Actions 页面点击 `Run workflow`，并行发布 `win-x86`、`win-x64`、`win-arm64`，分别生成三个 artifact。
+
+发布产物是依赖框架的单文件程序，目标机器需要安装 **.NET 10 Desktop Runtime**。`I18n` 目录会随 artifact 一起上传，保持多语言可用。
 
 ## 代码结构
 

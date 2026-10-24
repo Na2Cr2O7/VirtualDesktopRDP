@@ -1,0 +1,42 @@
+name: Build x64
+
+on:
+  push:
+
+concurrency:
+  group: build-x64-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish-x64:
+    name: Publish x64
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: "**/*.csproj"
+
+      - name: Publish x64
+        shell: pwsh
+        run: |
+          dotnet publish .\VirtualDesktopRDP.csproj `
+            -c Release `
+            -p:PublishProfile=Lite64 `
+            --output "${{ github.workspace }}\artifacts\win-x64"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VirtualDesktopRDP-win-x64
+          path: artifacts/win-x64/**
+          if-no-files-found: error
