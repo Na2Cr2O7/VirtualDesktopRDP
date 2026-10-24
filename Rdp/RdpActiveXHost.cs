@@ -179,6 +179,15 @@ internal sealed class RdpActiveXHost : AxHost
     /// </summary>
     internal void SyncHostBounds()
     {
+        SyncHostBounds(0, 0);
+    }
+
+    /// <summary>
+    /// 使用调用方给出的 WPF 内容区物理像素尺寸同步 ActiveX。
+    /// 完全不依赖 WinForms 父容器当前的 ClientSize。
+    /// </summary>
+    internal void SyncHostBounds(int targetWidth, int targetHeight)
+    {
         if (!IsHandleCreated
             || IsDisposed
             || Disposing
@@ -188,7 +197,9 @@ internal sealed class RdpActiveXHost : AxHost
             return;
         }
 
-        var targetSize = parent.ClientSize;
+        var targetSize = targetWidth > 0 && targetHeight > 0
+            ? new DrawingSize(targetWidth, targetHeight)
+            : parent.ClientSize;
         if (targetSize.Width <= 0 || targetSize.Height <= 0)
         {
             return;
@@ -197,6 +208,16 @@ internal sealed class RdpActiveXHost : AxHost
         if (Dock != DockStyle.Fill)
         {
             Dock = DockStyle.Fill;
+        }
+
+        // 调用方给的是 WPF 内容区物理像素尺寸；如果 WinForms 父容器仍停留在旧尺寸，
+        // 先把它拉到目标大小，否则 ActiveX 会被父容器裁切。
+        if (targetWidth > 0
+            && targetHeight > 0
+            && (parent.ClientSize.Width != targetSize.Width
+                || parent.ClientSize.Height != targetSize.Height))
+        {
+            parent.Size = targetSize;
         }
 
         var sizeChanged = _lastSyncedSize != targetSize;

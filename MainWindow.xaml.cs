@@ -407,9 +407,14 @@ public partial class MainWindow : Window
     private void OnRdpHostSyncTimerTick(object? sender, EventArgs e)
     {
         _rdpHostSyncTimer.Stop();
-        if (_childSessionService.ConnectedState == 1)
+        if (_childSessionService.ConnectedState == 1
+            && RdpHostContainer.ActualWidth > 0
+            && RdpHostContainer.ActualHeight > 0)
         {
-            _childSessionService.SyncRdpHostBounds();
+            var dpi = VisualTreeHelper.GetDpi(RdpHostContainer);
+            _childSessionService.SyncRdpHostBounds(
+                (int)Math.Round(RdpHostContainer.ActualWidth * dpi.DpiScaleX),
+                (int)Math.Round(RdpHostContainer.ActualHeight * dpi.DpiScaleY));
         }
     }
 
