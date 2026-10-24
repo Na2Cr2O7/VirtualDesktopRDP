@@ -65,7 +65,7 @@ internal sealed class RdpActiveXHost : AxHost
                 GetComProperty(GetRequiredOcx(), "Connected"),
                 CultureInfo.InvariantCulture);
         }
-    }
+        }
 
     /// <summary>连接本机 Child Session。</summary>
     internal void ConnectToChildSession(DrawingSize desktopSize)
